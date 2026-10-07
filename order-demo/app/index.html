@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sipariş Aç · order-demo</title>
+<style>
+/* System fonts only - the demo has to work with no internet. */
+:root{
+  --bg:#F4F6F9; --panel:#FFFFFF; --ink:#0F1720; --ink2:#48535F; --muted:#6B7683;
+  --rule:#DDE3EA; --accent:#1F5C9E; --accent-ink:#17456F; --accent-soft:#E8EFF7;
+  --ok:#2E7D4F; --ok-bg:#E4F1E9; --wait:#96640A; --wait-bg:#F7EFDD;
+  --no:#AF3C36; --no-bg:#F9E8E6;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.5}
+.top{background:var(--panel);border-bottom:1px solid var(--rule);padding:18px 28px;
+  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.top h1{margin:0;font-size:25px;font-weight:600;letter-spacing:-.01em}
+.top .sub{color:var(--muted);font-size:14px}
+.top .links{margin-left:auto;display:flex;gap:16px;font-size:14px}
+.top a{color:var(--accent);text-decoration:none}
+.top a:hover{text-decoration:underline}
+
+.wrap{max-width:1280px;margin:0 auto;padding:28px;display:grid;
+  grid-template-columns:minmax(0,470px) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;
+  box-shadow:0 1px 2px rgba(15,23,32,.05),0 10px 30px -22px rgba(15,23,32,.4)}
+.card h2{margin:0;padding:17px 22px;font-size:17px;font-weight:600;border-bottom:1px solid var(--rule);
+  display:flex;align-items:center;gap:10px}
+.card .body{padding:22px}
+
+label{display:block;font-size:14.5px;font-weight:600;color:var(--ink2);margin:0 0 6px;letter-spacing:.01em}
+select,input{width:100%;font:inherit;font-size:19px;padding:13px 14px;border:1px solid var(--rule);
+  border-radius:7px;background:var(--panel);color:var(--ink)}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.field{margin-bottom:17px}
+.hint{font-size:14px;color:var(--muted);margin-top:5px}
+
+.total{margin:20px 0 4px;padding:17px 19px;border-radius:9px;background:var(--accent-soft);
+  border:1px solid var(--rule)}
+.total .lbl{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.total .calc{font-family:var(--mono);font-size:15px;color:var(--ink2);margin-bottom:6px}
+.total .amt{font-size:42px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.total .flag{margin-top:11px;font-size:15.5px;font-weight:500;display:flex;align-items:center;gap:7px}
+.total.over{background:var(--wait-bg)} .total.over .lbl{color:var(--wait)}
+.total.over .flag{color:var(--wait)}
+.total.under .flag{color:var(--ok)}
+
+button{width:100%;margin-top:18px;padding:16px;font:inherit;font-size:18px;font-weight:600;
+  color:#fff;background:var(--accent);border:0;border-radius:8px;cursor:pointer}
+button:hover:not(:disabled){background:var(--accent-ink)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.result{margin-top:17px;padding:16px 18px;border-radius:8px;font-size:16.5px;display:none}
+.result.show{display:block}
+.result.ok{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok)}
+.result.err{background:var(--no-bg);border:1px solid var(--no);color:var(--no)}
+.result .id{font-family:var(--mono);font-size:12.5px;display:block;margin-top:5px;word-break:break-all;opacity:.85}
+
+table{width:100%;border-collapse:collapse;font-size:16.5px}
+th{text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);padding:10px 22px;border-bottom:1px solid var(--rule)}
+td{padding:12px 22px;border-bottom:1px solid var(--rule);color:var(--ink2);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.fresh{animation:pop 1.6s ease-out}
+@keyframes pop{from{background:var(--accent-soft)}to{background:transparent}}
+td.amt{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;color:var(--ink)}
+.pill{font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap}
+.s-PENDING{background:var(--wait-bg);color:var(--wait)}
+.s-APPROVED{background:var(--ok-bg);color:var(--ok)}
+.s-REJECTED{background:var(--no-bg);color:var(--no)}
+.by{font-size:14px;color:var(--muted);display:block;margin-top:2px}
+
+.live{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;font-weight:400}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dot,tr.fresh{animation:none}}
+.empty{padding:26px 22px;color:var(--muted);font-size:14.5px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Sipariş Aç</h1>
+  <span class="sub">order-demo · SAP CAP</span>
+  <div class="links">
+    <a href="/$fiori-preview/OrderService/Orders#preview-app" target="_blank">Fiori listesi</a>
+    <a href="/odata/v4/order/Orders" target="_blank">OData</a>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Yeni sipariş</h2>
+    <div class="body">
+      <div class="field">
+        <label for="customer">Müşteri</label>
+        <select id="customer"></select>
+      </div>
+
+      <div class="field">
+        <label for="product">Ürün</label>
+        <select id="product"></select>
+        <div class="hint" id="priceHint">Birim fiyat SAP'deki fiyat listesinden okunur.</div>
+      </div>
+
+      <div class="field">
+        <label for="qty">Adet</label>
+        <input id="qty" type="number" min="1" step="1" value="40">
+      </div>
+
+      <div class="total under" id="total">
+        <div class="lbl">Tutar</div>
+        <div class="calc" id="calc">—</div>
+        <div class="amt" id="amt">0,00 TRY</div>
+        <div class="flag" id="flag"></div>
+      </div>
+
+      <button id="submit">Siparişi Aç</button>
+      <div class="result" id="result"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Siparişler <span class="live"><span class="dot"></span>canlı</span></h2>
+    <div id="list"><div class="empty">Yükleniyor…</div></div>
+  </div>
+
+</div>
+
+<script>
+var ODATA = '/odata/v4/order';
+var THRESHOLD = 10000;
+var products = {}, lastId = null;
+
+function tl(n) {
+  return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function el(id) { return document.getElementById(id); }
+
+// ---- master data ------------------------------------------------------------
+function loadMasterData() {
+  fetch(ODATA + '/Customers').then(function (r) { return r.json(); }).then(function (d) {
+    el('customer').innerHTML = d.value.map(function (c) {
+      return '<option value="' + c.name + '">' + c.name + ' — ' + c.city + '</option>';
+    }).join('');
+  });
+
+  fetch(ODATA + '/Products').then(function (r) { return r.json(); }).then(function (d) {
+    d.value.forEach(function (p) { products[p.name] = Number(p.unitPrice); });
+    el('product').innerHTML = d.value.map(function (p) {
+      return '<option value="' + p.name + '">' + p.name + '  ·  ' + tl(p.unitPrice) + ' TRY</option>';
+    }).join('');
+    recalc();
+  });
+}
+
+// ---- live total -------------------------------------------------------------
+function recalc() {
+  var name = el('product').value;
+  var price = products[name] || 0;
+  var qty = parseInt(el('qty').value, 10) || 0;
+  var total = qty * price;
+
+  el('calc').textContent = price ? qty + ' × ' + tl(price) : '—';
+  el('amt').textContent = tl(total) + ' TRY';
+  el('priceHint').textContent = price
+    ? 'Birim fiyat ' + tl(price) + ' TRY — SAP fiyat listesinden okundu.'
+    : 'Birim fiyat SAP fiyat listesinden okunur.';
+
+  var box = el('total');
+  var over = total > THRESHOLD;
+  box.className = 'total ' + (over ? 'over' : 'under');
+  el('flag').textContent = over
+    ? '10.000 üstü — onay istenecek'
+    : '10.000 altı — otomatik onaylanacak';
+}
+
+// ---- create -----------------------------------------------------------------
+function createOrder() {
+  var btn = el('submit'), res = el('result');
+  btn.disabled = true; btn.textContent = 'Gönderiliyor…';
+  res.className = 'result';
+
+  // amount is deliberately NOT sent: CAP derives it from the price list.
+  fetch(ODATA + '/Orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customer: el('customer').value,
+      product: el('product').value,
+      qty: parseInt(el('qty').value, 10)
+    })
+  }).then(function (r) {
+    return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+  }).then(function (out) {
+    if (!out.ok) throw new Error((out.body.error && out.body.error.message) || 'Sipariş oluşturulamadı');
+    lastId = out.body.ID;
+    res.className = 'result show ok';
+    res.innerHTML = 'Sipariş açıldı — ' + tl(out.body.amount) + ' ' + out.body.currency +
+      '<span class="id">' + out.body.ID + '</span>';
+    refresh();
+  }).catch(function (e) {
+    res.className = 'result show err';
+    res.textContent = e.message;
+  }).then(function () {
+    btn.disabled = false; btn.textContent = 'Siparişi Aç';
+  });
+}
+
+// ---- live list --------------------------------------------------------------
+function refresh() {
+  fetch(ODATA + '/Orders?$select=ID,customer,product,qty,amount,currency,status,approvedBy')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var rows = d.value.slice().reverse().slice(0, 8);
+      if (!rows.length) { el('list').innerHTML = '<div class="empty">Henüz sipariş yok.</div>'; return; }
+      el('list').innerHTML =
+        '<table><tr><th>Müşteri / Ürün</th><th>Adet</th><th>Tutar</th><th>Durum</th></tr>' +
+        rows.map(function (o) {
+          var by = o.approvedBy ? '<span class="by">' + o.approvedBy + '</span>' : '';
+          return '<tr' + (o.ID === lastId ? ' class="fresh"' : '') + '>' +
+            '<td>' + o.customer + '<span class="by">' + o.product + '</span></td>' +
+            '<td class="amt">' + o.qty + '</td>' +
+            '<td class="amt">' + tl(o.amount) + '</td>' +
+            '<td><span class="pill s-' + o.status + '">' + o.status + '</span>' + by + '</td></tr>';
+        }).join('') + '</table>';
+    })
+    .catch(function () {
+      el('list').innerHTML = '<div class="empty">CAP\'e ulaşılamıyor.</div>';
+    });
+}
+
+el('product').addEventListener('change', recalc);
+el('qty').addEventListener('input', recalc);
+el('submit').addEventListener('click', createOrder);
+
+loadMasterData();
+refresh();
+setInterval(refresh, 3000);   // the approval result lands here without a manual reload
+</script>
+</body>
+</html>

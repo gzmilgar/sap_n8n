@@ -1,0 +1,334 @@
+{
+  "name": "04 - Order Approval (OFFLINE / Form)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-approval-offline",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000001",
+      "name": "CAP Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        300
+      ],
+      "webhookId": "d4000000-0000-4000-8000-000000000021",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "CAP Webhook Key"
+        }
+      },
+      "notes": "Point CAP at this path instead: N8N_WEBHOOK_URL=http://localhost:5678/webhook/order-approval-offline"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "ID",
+              "value": "={{ $json.body.ID }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "customer",
+              "value": "={{ $json.body.customer }}",
+              "type": "string"
+            },
+            {
+              "id": "f3",
+              "name": "product",
+              "value": "={{ $json.body.product }}",
+              "type": "string"
+            },
+            {
+              "id": "f4",
+              "name": "qty",
+              "value": "={{ Number($json.body.qty) }}",
+              "type": "number"
+            },
+            {
+              "id": "f5",
+              "name": "amount",
+              "value": "={{ Number($json.body.amount) }}",
+              "type": "number"
+            },
+            {
+              "id": "f6",
+              "name": "currency",
+              "value": "={{ $json.body.currency || 'TRY' }}",
+              "type": "string"
+            },
+            {
+              "id": "f7",
+              "name": "onayFormUrl",
+              "value": "={{ $execution.resumeFormUrl }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000002",
+      "name": "Siparis Bilgileri",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        20,
+        300
+      ],
+      "notes": "onayFormUrl is the exact address the approver opens while the Wait node is paused. n8n appends a one-time resume token, so never hand-build this URL."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.amount }}",
+              "rightValue": 10000,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000003",
+      "name": "Tutar > 10.000 mu?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Siparis Onayi",
+        "formDescription": "=Musteri: {{ $json.customer }}  |  Urun: {{ $json.product }}  |  Adet: {{ $json.qty }}  |  Tutar: {{ $json.amount }} {{ $json.currency }}  |  Siparis No: {{ $json.ID }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Karar",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Onayla"
+                  },
+                  {
+                    "option": "Reddet"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Onaylayan",
+              "fieldType": "text",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000004",
+      "name": "Form ile Onay Bekle",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        180
+      ],
+      "webhookId": "d4000000-0000-4000-8000-000000000024",
+      "notes": "Runs fully offline. Open the URL from 'Siparis Bilgileri'.onayFormUrl to decide."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.Karar }}",
+              "rightValue": "Onayla",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000005",
+      "name": "Onaylandi mi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:4004/odata/v4/order/approve",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ID: $('Siparis Bilgileri').item.json.ID, approvedBy: $json.Onaylayan || 'Form' }) }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000006",
+      "name": "CAP approve (Form)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:4004/odata/v4/order/reject",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ID: $('Siparis Bilgileri').item.json.ID, reason: 'Form uzerinden reddedildi' }) }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000007",
+      "name": "CAP reject (Form)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:4004/odata/v4/order/approve",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ID: $json.ID, approvedBy: 'auto-rule' }) }}",
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000008",
+      "name": "CAP approve (auto-rule)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        440
+      ]
+    }
+  ],
+  "connections": {
+    "CAP Webhook": {
+      "main": [
+        [
+          {
+            "node": "Siparis Bilgileri",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siparis Bilgileri": {
+      "main": [
+        [
+          {
+            "node": "Tutar > 10.000 mu?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tutar > 10.000 mu?": {
+      "main": [
+        [
+          {
+            "node": "Form ile Onay Bekle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CAP approve (auto-rule)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form ile Onay Bekle": {
+      "main": [
+        [
+          {
+            "node": "Onaylandi mi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Onaylandi mi?": {
+      "main": [
+        [
+          {
+            "node": "CAP approve (Form)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CAP reject (Form)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "sit-ankara-order-demo"
+  },
+  "tags": []
+}

@@ -1,0 +1,65 @@
+{
+  "name": "03 - Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c3000000-0000-4000-8000-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        300
+      ],
+      "notes": "Select this workflow under Settings > Error Workflow in 01, 02 and 04."
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "<CHAT_ID>",
+        "text": "=*Workflow hata verdi*\n\nWorkflow: {{ $json.workflow?.name || 'bilinmiyor' }}\nNode: {{ $json.execution?.lastNodeExecuted || '-' }}\nHata: {{ $json.execution?.error?.message || $json.trigger?.error?.message || 'detay yok' }}\nZaman: {{ $now.format('dd.MM.yyyy HH:mm:ss') }}\n\nExecution: {{ $json.execution?.id || '-' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c3000000-0000-4000-8000-000000000002",
+      "name": "Telegram Hata Bildirimi",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        140,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Replace <CHAT_ID> with your own chat id."
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Telegram Hata Bildirimi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "sit-ankara-order-demo"
+  },
+  "tags": []
+}

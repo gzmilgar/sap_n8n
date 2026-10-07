@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs & temp
+*.log
+.DS_Store
+scratchpad*
+
+# Local env / secrets
+.env
+*.local
+
+# Local dev environment (skill framework, editor/agent config)
+.agents/
+.claude/
+skills-lock.json
+
+# demo runtime logs
+.demo-logs/
+
+# deck build deps
+sunum/node_modules/
