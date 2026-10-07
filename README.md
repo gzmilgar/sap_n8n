@@ -38,7 +38,7 @@ JSONs and scripts are self-explanatory.
 5. [Hızlı başlangıç](#5-hızlı-başlangıç)
 6. [Kurulum ayrıntıları](#6-kurulum-ayrıntıları)
 7. [Demoyu çalıştırma](#7-demoyu-çalıştırma)
-8. [İki onay modu: Telegram ve Form](#8-iki-onay-modu-telegram-ve-form)
+8. [Onay modları: Telegram ve Form](#8-onay-modları-telegram-ve-form)
 9. [Ortam değişkenleri](#9-ortam-değişkenleri)
 10. [Script'ler](#10-scriptler)
 11. [Workflow'lar](#11-workflowlar)
@@ -148,7 +148,7 @@ Paket **macOS** üzerinde uçtan uca doğrulandı. Script'ler zsh ister; macOS't
 | Node.js | **≥ 20** (`package.json` → `engines`), test: v24 | nvm önerilir; script'ler nvm PATH'ini kendileri çözer |
 | `@sap/cds-dk` | 10.x, global | `npm i -g @sap/cds-dk` |
 | n8n | 2.x (test: 2.39), global | `npm i -g n8n` · **Docker gerekmez** |
-| cloudflared | isteğe bağlı | Telegram onayı için şart, bkz. [§ 8](#8-iki-onay-modu-telegram-ve-form) · `brew install cloudflared` |
+| cloudflared | isteğe bağlı | Telegram onayı için şart, bkz. [§ 8](#8-onay-modları-telegram-ve-form) · `brew install cloudflared` |
 | Telegram botu | isteğe bağlı | @BotFather'dan bir bot token'ı; Perde 1b için |
 | Google Gemini anahtarı | isteğe bağlı, ücretsiz | Perde 2'yi canlı LLM ile oynamak için; LLM'siz yedek de var |
 
@@ -174,7 +174,7 @@ open "http://localhost:4004/\$fiori-preview/OrderService/Orders#preview-app"
 ```
 
 Telegram onayını gerçekten görmek için n8n'i `./scripts/start-demo.sh --tunnel` ile
-başlat; nedenini [§ 8](#8-iki-onay-modu-telegram-ve-form) anlatıyor.
+başlat; nedenini [§ 8](#8-onay-modları-telegram-ve-form) anlatıyor.
 
 ## 6. Kurulum ayrıntıları
 
@@ -326,7 +326,7 @@ tetikler ve Telegram'a onay düşer. Agent oluşturdu, **onaylamadı**.
 
 CAP logunda yalnızca `n8n webhook failed ... - order was still created` uyarısı görünür.
 
-## 8. İki onay modu: Telegram ve Form
+## 8. Onay modları: Telegram ve Form
 
 Demonun en kritik operasyonel ayrıntısı.
 

@@ -84,7 +84,7 @@ else
     bad "tünel YOK - Telegram onay butonları çalışmaz"; note
     info "Telegram, localhost'a giden butonları reddeder."
     info "çözüm:  ./scripts/stop-demo.sh && ./scripts/start-demo.sh --tunnel"
-    info "ya da form moduna geç (README.md, 'İki onay modu' bölümü)"
+    info "ya da form moduna geç (README.md, 'Onay modları' bölümü)"
   fi
   info "onay butonuna bu Mac'teki tarayıcıdan bas (Telegram Web açık olsun)"
 fi

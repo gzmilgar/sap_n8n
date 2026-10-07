@@ -74,7 +74,7 @@ CAP Webhook ─► Siparis Bilgileri ─► Tutar > 10.000 mu?
 
 **Telegram butonları `localhost` ile çalışmaz.** Telegram, buton URL'i olarak loopback adresi
 kabul etmez. n8n'i public bir adresle başlatman gerekir: `./scripts/start-demo.sh --tunnel`
-(cloudflared). Ayrıntı: [kök README § 8](../README.md#8-iki-onay-modu-telegram-ve-form).
+(cloudflared). Ayrıntı: [kök README § 8](../README.md#8-onay-modları-telegram-ve-form).
 
 Onay butonuna demo yapılan bilgisayardaki tarayıcıdan basılır; tıklayınca "Action recorded"
 sayfası açılır. Sohbetteki mesaj kendini güncellemez; bu normaldir.
