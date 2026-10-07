@@ -26,13 +26,16 @@ Ya da kök dizinden tek komutla: `./scripts/start-demo.sh`
 
 | Entity | Alanlar |
 |---|---|
-| `Orders` | `ID` (UUID), `customer`, `product`, `qty`, `amount` (Decimal 15,2), `currency` (default `TRY`), `status` (`PENDING`\|`APPROVED`\|`REJECTED`), `approvedBy`, `approvedAt`, `note` |
+| `Orders` | `ID` (UUID), `customer`, `product`, `qty`, `amount` (Decimal 15,2), `currency` (default `TRY`), `status` (`PENDING`\|`APPROVED`\|`REJECTED`), `approvedBy`, `approvedAt`, `note` + `managed` alanları (`createdAt`, `modifiedAt`, `createdBy`, `modifiedBy`) |
 | `Customers` | `ID`, `name`, `city` — 4 kayıt |
 | `Products` | `ID`, `name`, `unitPrice` — 6 kayıt |
 
 `Orders` projeksiyonu ayrıca **`statusCriticality`** hesaplanan alanını döner
 (APPROVED→3 yeşil, PENDING→2 sarı, REJECTED→1 kırmızı). Fiori'deki renkli
 durum sütununu bu alan sürer; UI dışında kullanılmaz.
+
+`createdAt` listelerin sıralama anahtarıdır: `app/index.html` `$orderby=createdAt desc&$top=8` ile
+son 8 siparişi, Fiori listesi `UI.PresentationVariant` ile tüm siparişleri yeniden eskiye gösterir.
 
 ## Servis davranışı (`srv/order-service.js`)
 

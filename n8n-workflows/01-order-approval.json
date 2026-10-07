@@ -209,7 +209,14 @@
         "options": {
           "messageButtonLabel": "Gerekce Yaz",
           "formTitle": "Ret Gerekcesi",
-          "formDescription": "Bu siparisin neden reddedildigini yaz."
+          "formDescription": "Bu siparisin neden reddedildigini yaz.",
+          "limitWaitTime": {
+            "values": {
+              "limitType": "afterTimeInterval",
+              "resumeAmount": 2,
+              "resumeUnit": "minutes"
+            }
+          }
         }
       },
       "id": "a1000000-0000-4000-8000-000000000009",
@@ -227,7 +234,7 @@
           "name": "Telegram account"
         }
       },
-      "notes": "Only on the reject path: approving stays one tap. Output is $json.data.text."
+      "notes": "Reddet'e basilinca gerekce sorar. 2 dakika icinde cevap gelmezse varsayilan gerekceyle devam eder (Limit Wait Time)."
     },
     {
       "parameters": {
@@ -353,7 +360,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "demo03"
   },
   "pinData": {},
   "meta": {

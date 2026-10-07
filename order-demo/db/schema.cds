@@ -1,10 +1,12 @@
 namespace order.demo;
 
+using { managed } from '@sap/cds/common';
+
 /**
  * Sales orders that flow through the n8n approval loop.
  * Status transitions: PENDING -> APPROVED | REJECTED
  */
-entity Orders {
+entity Orders : managed {   // managed -> createdAt/modifiedAt: listeler yeniden eskiye siralanir
   key ID           : UUID;
       customer     : String(100);
       product      : String(100);

@@ -20,6 +20,11 @@ annotate OrderService.Orders with @(
       product
     ],
 
+    PresentationVariant: {
+      SortOrder     : [{Property: createdAt, Descending: true}],
+      Visualizations: ['@UI.LineItem']
+    },
+
     LineItem        : [
       {
         $Type: 'UI.DataField',
@@ -64,7 +69,8 @@ annotate OrderService.Orders with @(
       {Value: product},
       {Value: qty},
       {Value: amount},
-      {Value: currency}
+      {Value: currency},
+      {Value: createdAt}
     ]},
 
     FieldGroup #Onay : {Data: [
@@ -104,6 +110,10 @@ annotate OrderService.Orders with @(
   approvedBy        @title: 'Onaylayan';
   approvedAt        @title: 'Onay Zamanı';
   note              @title: 'Not';
+  createdAt         @title: 'Oluşturma Zamanı';
+  createdBy         @UI.Hidden;
+  modifiedAt        @UI.Hidden;
+  modifiedBy        @UI.Hidden;
 }
 
 annotate OrderService.Customers with {

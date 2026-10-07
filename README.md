@@ -272,7 +272,12 @@ sipariş yaklaşık 1 saniyede **APPROVED / auto-rule** olur. n8n → Executions
 n8n *send-and-wait* ile durur; execution **waiting** durumuna geçer ve saatlerce bekleyebilir.
 Telegram'a sipariş özeti ile **Onayla / Reddet** butonları düşer. Onayla → tarayıcıda
 "Action recorded" sayfası açılır (onay budur; sohbetteki mesaj kendini güncellemez, normaldir)
-→ Fiori'de **APPROVED / Telegram**. Reddet → **REJECTED**, sebep `note` alanına yazılır.
+→ Fiori'de **APPROVED / Telegram**.
+
+**Reddet** iki adımlıdır: bot "Ret Gerekcesi" mesajı ve **Gerekce Yaz** düğmesi gönderir, kısa bir form açılır.
+Gerekçe yazılınca sipariş **REJECTED** olur ve gerekçe `note` alanına düşer. Form **2 dakika** içinde
+doldurulmazsa workflow kendiliğinden devam eder ve sipariş "Telegram uzerinden reddedildi" notuyla
+REJECTED olur. Yani Reddet'e basıp formu unutmak demoyu kilitlemez.
 
 Tutar vermezsen CAP hesaplar: `./scripts/create-order.sh` → 40 × 375,00 = **15.000,00**
 (Endüstriyel Filtre Kartuşu). Diğer seçenekler: `-c` müşteri, `-p` ürün, `-q` adet.
@@ -422,7 +427,7 @@ Node node anlatım ve import seçenekleri: [n8n-workflows/README.md](n8n-workflo
 |---|---|---|
 | `01-order-approval.json` | Webhook `/webhook/order-approval` (Header Auth) | IF tutar > 10.000 → Telegram send-and-wait → `approve` / `reject`; değilse `approve(auto-rule)` |
 | `02-order-agent.json` | Chat Trigger | AI Agent (Gemini, Simple Memory) + 3 HTTP Request Tool: `listProducts`, `getCustomer`, `createOrder` |
-| `03-error-handler.json` | Error Trigger | Herhangi bir workflow hata verirse Telegram'a bildirim (her workflow'un Settings → Error workflow alanında seçilir) |
+| `03-error-handler.json` | Error Trigger | 01, 02 ve 04 hata verirse Telegram'a bildirim. Üç workflow'un `settings.errorWorkflow` alanı `demo03`'ü gösterir; `setup-mac.sh` sabit kimliklerle import ettiği için bağlantı korunur |
 | `04-order-approval-OFFLINE.json` | Webhook `/webhook/order-approval-offline` | 01'in aynısı, Telegram yerine n8n **Form** ile onay; internetsiz çalışır |
 
 Değiştirmek istediğin kural **onay eşiği (10.000)** ise CAP'te değil, `01` ve `04`'teki
@@ -442,6 +447,10 @@ Kök: `http://localhost:4004/odata/v4/order`. Tam anlatım: [order-demo/MIMARI.m
 | `/reject` | POST `{ID, reason}` | Reddeder; sebep `note` alanına yazılır; idempotent |
 | `/$metadata` | GET | EDMX |
 
+`Orders` entity'si `managed` aspect'i taşır; `createdAt` alanı sayesinde hem `localhost:4004` formu
+hem Fiori listesi (`UI.PresentationVariant`) siparişleri **yeniden eskiye** sıralar. OData'nın varsayılan
+sırası UUID'ye göredir, bu yüzden listeleri `createdAt` olmadan sıralamaya çalışma.
+
 Veritabanı **in-memory SQLite**: `cds watch` her başladığında CSV'ler yeniden yüklenir, liste
 3 siparişe döner. Demo tekrar tekrar aynı temiz durumdan oynanabilir. Fiyat değiştirmek ya da
 ürün eklemek için `db/data/order.demo-Products.csv`'ye satır ekleyip CAP'i yeniden başlat.
@@ -455,6 +464,7 @@ Veritabanı **in-memory SQLite**: `cds watch` her başladığında CSV'ler yenid
 | `Credential with ID "REPLACE_WITH_..." does not exist` | § 6.2-b atlanmış | Node'u aç, kendi credential'ını seç |
 | `Credential with ID ... does not exist` (credential seçili olduğu hâlde) | Yayınlanan sürüm eski | `./scripts/stop-demo.sh --n8n && ./scripts/publish-workflows.sh` |
 | n8n'de yaptığın değişiklik çalışmıyor | Taslak kaydedildi, yayınlanmadı | Active anahtarını kapat/aç ya da `publish-workflows.sh` |
+| Reddet'e bastım, sipariş PENDING kaldı | Bot gerekçe formunu bekliyor | Telegram'daki **Gerekce Yaz** düğmesiyle formu doldur, ya da 2 dakika bekle; varsayılan gerekçeyle reddedilir |
 | Telegram `chat not found` | Bot seninle hiç konuşmamış | Bota önce sen mesaj at, sonra chat id'yi doğrula |
 | Telegram `inline keyboard button URL ... Wrong HTTP URL` | n8n localhost'ta, tünel yok | `./scripts/start-demo.sh --tunnel` |
 | Onay butonu bir şey açmıyor | Link bu makinedeki n8n'e gidiyor | Aynı bilgisayardaki tarayıcıdan tıkla (Telegram Web / Desktop) |

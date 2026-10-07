@@ -80,6 +80,7 @@ Tanımların yeri: [`db/schema.cds`](db/schema.cds)
 | `approvedBy` | String(100) | Kim onayladı: `Telegram`, `auto-rule`, form'daki isim… |
 | `approvedAt` | Timestamp | Onay/ret zamanı |
 | `note` | String(500) | Serbest not; ret sebebi buraya yazılır |
+| `createdAt`, `modifiedAt`, `createdBy`, `modifiedBy` | `managed` aspect | CAP otomatik doldurur. `createdAt` listelerin **yeniden eskiye** sıralama anahtarı; OData'nın varsayılan sırası UUID'ye göredir |
 
 > `customer` ve `product` neden ilişki (association) değil de düz metin?
 > Demo basit kalsın diye. Gerçek bir projede bunlar `Customers`/`Products`'a

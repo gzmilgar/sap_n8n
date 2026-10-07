@@ -217,10 +217,10 @@ function createOrder() {
 
 // ---- live list --------------------------------------------------------------
 function refresh() {
-  fetch(ODATA + '/Orders?$select=ID,customer,product,qty,amount,currency,status,approvedBy')
+  fetch(ODATA + '/Orders?$select=ID,customer,product,qty,amount,currency,status,approvedBy,createdAt&$orderby=createdAt%20desc&$top=8')
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      var rows = d.value.slice().reverse().slice(0, 8);
+      var rows = d.value;   // sunucu createdAt'e göre yeniden eskiye sıraladı (UUID sırasına güvenme)
       if (!rows.length) { el('list').innerHTML = '<div class="empty">Henüz sipariş yok.</div>'; return; }
       el('list').innerHTML =
         '<table><tr><th>Müşteri / Ürün</th><th>Adet</th><th>Tutar</th><th>Durum</th></tr>' +

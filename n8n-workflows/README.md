@@ -68,7 +68,7 @@ CAP Webhook ─► Siparis Bilgileri ─► Tutar > 10.000 mu?
 | `Telegram Onay Iste` | Telegram (send and wait) | Sipariş özeti + **Onayla / Reddet** butonları. Execution `waiting` durumuna geçer; saatlerce bekleyebilir. Çıktı: `data.approved` (true/false). |
 | `Onaylandi mi?` | IF | `data.approved` dalını ayırır. |
 | `CAP approve (Telegram)` | HTTP Request | `POST http://localhost:4004/odata/v4/order/approve` `{ID, approvedBy: "Telegram"}` |
-| `Ret Sebebi Sor` | Telegram (send and wait, serbest metin) | Reddet'e basılınca Telegram'dan ret sebebini sorar; yazılan cevap `reject` çağrısına `reason` olarak gider. |
+| `Ret Sebebi Sor` | Telegram (send and wait, serbest metin) | Reddet'e basılınca Telegram'dan ret sebebini sorar; yazılan cevap `reject` çağrısına `reason` olarak gider. **Limit Wait Time 2 dakika:** cevap gelmezse node girdisini aynen geçirir ve `reject` varsayılan gerekçe "Telegram uzerinden reddedildi" ile çağrılır. |
 | `CAP reject (Telegram)` | HTTP Request | `POST .../reject` `{ID, reason}`. Sebep CAP'te `note` alanına yazılır. |
 | `CAP approve (auto-rule)` | HTTP Request | Eşiğin altı: `{ID, approvedBy: "auto-rule"}`; yaklaşık 1 saniyede döner. |
 
@@ -114,7 +114,9 @@ LLM olmadan aynı üç çağrı: `./scripts/agent-demo.sh`.
 Error Trigger ─► Telegram Hata Bildirimi
 ```
 
-Her workflow'da **Settings → Error workflow** alanından elle seçilir; export bu ayarı taşımaz. Bir execution hata
+01, 02 ve 04'ün `settings.errorWorkflow` alanı `demo03`'ü gösterir. `setup-mac.sh` workflow'ları `demo01`…`demo04`
+sabit kimlikleriyle import ettiği için bağlantı import'ta korunur; arayüzden elle import ediyorsan
+**Settings → Error workflow** alanından `03`'ü seç. Bir execution hata
 verirse workflow adı, hata mesajı ve execution bağlantısı Telegram'a gider. Chat id'si 01 ile
 aynıdır; `set-chat-id.sh` ikisini birden yazar.
 

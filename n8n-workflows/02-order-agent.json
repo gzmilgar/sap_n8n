@@ -241,7 +241,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "demo03"
   },
   "pinData": {},
   "meta": {
