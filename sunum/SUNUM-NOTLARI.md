@@ -16,6 +16,10 @@ cd ~/sap_n8n
 ./scripts/check-demo.sh --full
 ```
 
+> Cloudflare quick tunnel 20-30 dakika sonra kendiliğinden kopabiliyor. Perde 1b'den ve Perde 2'den
+> hemen önce `./scripts/check-demo.sh` çalıştır; "tünel yanıt vermiyor" derse n8n'i `--tunnel` ile
+> yeniden başlat (1 dakika).
+
 **Form modunda** (internet yok / riskli):
 ```zsh
 # order-demo/.env -> N8N_WEBHOOK_URL=.../webhook/order-approval-offline
@@ -157,8 +161,13 @@ Sonra **Siparis Agent** node'unu aç, **system prompt**'u göster:
 
 | Yol | Nasıl | Ne zaman |
 |---|---|---|
-| **n8n editörü içindeki Chat** | `02`'yi aç → alttaki **Chat** düğmesi | **Önerilen.** Agent çalışırken canvas'ta tool'lar sırayla yanar — mimariyi göstermenin en iyi yolu |
-| **Ayrı chat sayfası** | `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat` | n8n arayüzü görünmesin, "bu bir ürün" hissi istersen |
+| **n8n editörü içindeki Chat** | `02`'yi aç → alttaki **Chat** düğmesi | Agent çalışırken canvas'ta tool'lar sırayla yanar — mimariyi göstermenin en iyi yolu. Sekmeyi sahneden önce bir kez yenile |
+| **Yerel chat sayfası** | `http://localhost:4004/chat.html` | n8n arayüzü görünmesin istersen. Tünelden bağımsız, en sağlam yol; örnek istemler tıklanabilir |
+| n8n'in kendi chat sayfası | `http://localhost:5678/webhook/b2…11/chat` | Kullanma: mesajı tünel üzerinden gönderir, tünel koparsa ya da yanıt 60 sn'yi aşarsa hata verir |
+
+> **Kota uyarısı.** Gemini ücretsiz katmanı bu modele günde **20 istek** verir; bir agent turu 2-4 istek
+> yakar. Sahne günü canlı agent'ı en fazla 1-2 kez çalıştır, provayı `agent-demo.sh` ile yap.
+> Yanıt süresi 5 ile 60 saniye arasında değişebilir; beklerken tool'ların yanışını anlat.
 
 Sahne için **editör içindeki Chat** daha güçlü: izleyici agent'ın üç tool'u
 sırayla çağırdığını canlı görüyor. Ayrı sayfa temiz ama kutu içinde kalıyor.
@@ -254,6 +263,8 @@ Vaktin kalırsa: `03 - Error Handler` workflow'unu göster (1 node, hata → Tel
 |---|---|
 | **İnternet yok** | `.env` → `order-approval-offline` · n8n'de `04` Activate, `01` Deactivate · `./scripts/stop-demo.sh && ./scripts/start-demo.sh` (**tünelsiz**) · onayı `onayFormUrl`'den ver |
 | **Telegram mesajı hiç gitmiyor** | Tünel kapanmıştır. `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --tunnel --n8n` |
+| **Chat "Failed to receive response"** | Tünel kopmuş ya da sekme eski. `http://localhost:4004/chat.html`'e geç; Telegram için tüneli yeniden başlat |
+| **Chat "Error in workflow"** | Gemini kotası (günde 20). `./scripts/agent-demo.sh` ile devam et, anlatım aynı |
 | **Telegram mesajı gelmiyor** | Perde 1b'yi atla, doğrudan Perde 2'ye geç. Dönerken 1b'yi offline formla göster. |
 | **agent-demo.sh hata veriyor** | CAP kapalıdır. `./scripts/start-demo.sh --cap` |
 | **Agent "credential does not exist" diyor** | Yayınlanmış sürüm eski. `./scripts/stop-demo.sh --n8n && ./scripts/publish-workflows.sh && ./scripts/start-demo.sh --tunnel` |

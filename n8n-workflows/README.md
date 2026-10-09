@@ -91,9 +91,9 @@ Chat Trigger ─► Siparis Agent ◄── Chat Model (Google Gemini Flash, tem
 
 | Node | Tip | Ne yapar |
 |---|---|---|
-| `Chat Trigger` | Chat Trigger | Editör içindeki **Chat** paneli ve ayrı chat sayfası: `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat` (workflow aktifken). |
+| `Chat Trigger` | Chat Trigger | Public mod. Üç giriş: editördeki **Chat** paneli; CAP'in servis ettiği yerel sayfa `http://localhost:4004/chat.html` (tünelden bağımsız, önerilen); n8n'in kendi sayfası `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat` (mesajı `WEBHOOK_URL` yani tünel üzerinden gönderir; tünel koparsa çalışmaz). |
 | `Siparis Agent` | AI Agent | System prompt: *asla tahmin etme, asla uydurma; tool sonucu boş döndüyse bulunamadı demektir; sırayla ürünü, müşteriyi doğrula, sonra sipariş aç.* Onay/ret tool'u **yoktur**. |
-| `Chat Model` | Google Gemini Chat Model | Repodaki JSON `models/gemini-3-flash-preview` ile gelir, temperature **0**. Google model kimliklerini zamanla kapatıyor; `./scripts/pick-gemini-model.sh` anahtarının kullanabildiği bir modeli bulup buraya yazar. |
+| `Chat Model` | Google Gemini Chat Model | Repodaki JSON `models/gemini-3-flash-preview` ile gelir, temperature **0**. Ücretsiz katman bu modele **günde 20 istek** verir; bir agent turu 2-4 istek harcar. Google model kimliklerini zamanla kapatıyor; `./scripts/pick-gemini-model.sh` anahtarının kullanabildiği bir modeli bulup buraya yazar. |
 | `Simple Memory` | Memory Buffer Window | Aynı sohbet içinde bağlamı tutar. |
 | `listProducts` | HTTP Request Tool | Ürünü adıyla arar, birim fiyatı döner. Açıklama: "sipariş oluşturmadan ÖNCE … MUTLAKA bu tool'u kullan". |
 | `getCustomer` | HTTP Request Tool | Müşteriyi adıyla arar. Açıklama: "boş liste dönerse müşteri sistemde KAYITLI DEĞİLDİR". |

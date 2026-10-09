@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sipariş Asistanı · order-demo</title>
+<style>
+/* Tünelden bağımsız yerel chat: mesajlar doğrudan localhost:5678'deki Chat Trigger'a gider.
+   n8n'in kendi /webhook/<id>/chat sayfası WEBHOOK_URL (tünel) üzerinden konuşur; tünel koparsa
+   ya da yanıt 60 sn'yi aşarsa "Failed to receive response" verir. Bu sayfa o yola hiç uğramaz. */
+:root{
+  --bg:#F4F6F9; --panel:#FFFFFF; --ink:#0F1720; --ink2:#48535F; --muted:#6B7683;
+  --rule:#DDE3EA; --accent:#1F5C9E; --accent-ink:#17456F; --accent-soft:#E8EFF7;
+  --ok:#2E7D4F; --ok-bg:#E4F1E9; --wait:#96640A; --wait-bg:#F7EFDD; --no:#AF3C36; --no-bg:#F9E8E6;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.5;display:flex;flex-direction:column;height:100vh}
+.top{background:var(--panel);border-bottom:1px solid var(--rule);padding:16px 28px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.top h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-.01em}
+.top .sub{color:var(--muted);font-size:14px}
+.top .links{margin-left:auto;display:flex;gap:16px;font-size:14px}
+.top a{color:var(--accent);text-decoration:none}
+.top a:hover{text-decoration:underline}
+.wrap{flex:1;display:flex;flex-direction:column;max-width:980px;width:100%;margin:0 auto;padding:18px 16px;min-height:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;color:var(--ink2)}
+.chip:hover{border-color:var(--accent);color:var(--accent-ink)}
+.log{flex:1;overflow:auto;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:78%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;word-break:break-word}
+.me{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.bot{align-self:flex-start;background:var(--accent-soft);color:var(--ink);border-bottom-left-radius:4px}
+.err{align-self:flex-start;background:var(--no-bg);color:var(--no);border-bottom-left-radius:4px;font-size:15px}
+.sys{align-self:center;color:var(--muted);font-size:13px}
+.wait{align-self:flex-start;color:var(--wait);font-size:14px;font-family:var(--mono)}
+.bar{display:flex;gap:10px;margin-top:12px}
+.bar input{flex:1;font:inherit;padding:12px 14px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+.bar input:focus{outline:2px solid var(--accent);border-color:transparent}
+.bar button{font:inherit;padding:12px 18px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}
+.bar button:disabled{opacity:.5;cursor:default}
+.bar .ghost{background:var(--panel);color:var(--ink2);border:1px solid var(--rule)}
+.foot{color:var(--muted);font-size:13px;margin-top:8px;font-family:var(--mono)}
+b{font-weight:600}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Sipariş Asistanı</h1>
+  <span class="sub">n8n AI Agent · Google Gemini · üç tool: listProducts, getCustomer, createOrder</span>
+  <div class="links">
+    <a href="/">Sipariş formu</a>
+    <a href="/$fiori-preview/OrderService/Orders#preview-app" target="_blank">Fiori</a>
+    <a id="n8nlink" href="http://localhost:5678/workflow/demo02" target="_blank">n8n · 02</a>
+  </div>
+</div>
+<div class="wrap">
+  <div class="chips" id="chips"></div>
+  <div class="log" id="log"></div>
+  <div class="bar">
+    <input id="q" placeholder="Örn: Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç" autocomplete="off">
+    <button id="send">Gönder</button>
+    <button id="reset" class="ghost" title="Yeni oturum: agent önceki mesajları unutur">Yeni sohbet</button>
+  </div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+// n8n adresi: varsayılan localhost. Gerekirse ?n8n=http://host:port ile değiştir.
+var params = new URLSearchParams(location.search);
+var N8N = (params.get('n8n') || 'http://localhost:5678').replace(/\/$/, '');
+var CHAT_ID = params.get('id') || 'b2000000-0000-4000-8000-000000000011';
+var URL_ = N8N + '/webhook/' + CHAT_ID + '/chat';
+var session = newSession();
+var busy = false;
+
+var EXAMPLES = [
+  "Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç",
+  "Ege Teknik'e 5 adet Conta Seti 100lük siparişi aç",
+  "Toros Kimya'ya 3 adet Süper Filtre 9000 siparişi aç",
+  "Yok Böyle Firma'ya 2 kutu Conta Seti 100lük siparişi aç",
+  "Sensörlü Debimetre'nin birim fiyatı ne?",
+  "Az önce açtığın siparişi onayla"
+];
+
+function el(id){ return document.getElementById(id); }
+function newSession(){ return 'web-' + Math.random().toString(36).slice(2, 10); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+function add(cls, html){
+  var d = document.createElement('div'); d.className = 'msg ' + cls; d.innerHTML = html;
+  el('log').appendChild(d); el('log').scrollTop = el('log').scrollHeight; return d;
+}
+function foot(){ el('foot').textContent = 'hedef: ' + URL_ + '   oturum: ' + session; }
+
+async function send(text){
+  text = (text || el('q').value).trim();
+  if (!text || busy) return;
+  busy = true; el('send').disabled = true; el('q').value = '';
+  add('me', esc(text));
+  var t0 = Date.now();
+  var w = add('wait', 'agent çalışıyor… 0 sn');
+  var tick = setInterval(function(){ w.textContent = 'agent çalışıyor… ' + Math.round((Date.now()-t0)/1000) + ' sn  (Gemini ücretsiz katmanda 5-60 sn sürebilir)'; }, 1000);
+  try {
+    var r = await fetch(URL_, { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'sendMessage', sessionId: session, chatInput: text }) });
+    var body = await r.text();
+    clearInterval(tick); w.remove();
+    var secs = Math.round((Date.now()-t0)/1000);
+    if (!r.ok) {
+      var hint = r.status === 500 ? 'n8n "Error in workflow" dedi: büyük ihtimalle Gemini kotası (429) ya da yoğunluk (503). 1 dakika bekleyip tekrar dene; n8n → Executions\'ta ayrıntı var.'
+               : r.status === 404 ? '02 workflow\'u aktif değil ya da chat id yanlış. n8n\'de 02\'yi Activate et.'
+               : 'HTTP ' + r.status;
+      add('err', 'Hata (' + secs + ' sn): ' + esc(hint) + '\n' + esc(body.slice(0, 200)));
+    } else {
+      var out; try { out = JSON.parse(body).output; } catch (e) { out = body; }
+      add('bot', md(out || '(boş yanıt)'));
+      add('sys', secs + ' sn');
+    }
+  } catch (e) {
+    clearInterval(tick); w.remove();
+    add('err', 'n8n\'e ulaşılamadı (' + esc(e.message) + '). n8n açık mı?  ./scripts/check-demo.sh');
+  }
+  busy = false; el('send').disabled = false; el('q').focus();
+}
+
+EXAMPLES.forEach(function(t){ var c = document.createElement('span'); c.className='chip'; c.textContent=t; c.onclick=function(){ send(t); }; el('chips').appendChild(c); });
+el('send').onclick = function(){ send(); };
+el('q').addEventListener('keydown', function(e){ if (e.key === 'Enter') send(); });
+el('reset').onclick = function(){ session = newSession(); el('log').innerHTML=''; add('sys', 'yeni oturum başladı; agent önceki mesajları hatırlamaz'); foot(); };
+el('n8nlink').href = N8N + '/workflow/demo02';
+add('sys', 'Merhaba! Ben sipariş asistanıyım. Bir örneğe tıkla ya da kendi cümleni yaz.');
+foot(); el('q').focus();
+</script>
+</body>
+</html>

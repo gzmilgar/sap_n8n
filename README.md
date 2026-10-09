@@ -121,6 +121,7 @@ sap_n8n/
 │  ├─ srv/order-service.js             tutar hesabı, webhook, idempotent onay
 │  ├─ app/fiori-annotations.cds        UI.LineItem, criticality, Türkçe etiketler
 │  ├─ app/index.html                   "Sipariş Aç" formu, canlı tutar, kendini yenileyen liste
+│  ├─ app/chat.html                    agent için yerel chat sayfası (tünelden bağımsız)
 │  └─ .env.example · package.json
 ├─ n8n-workflows/
 │  ├─ README.md                        her workflow node node
@@ -150,7 +151,7 @@ Paket **macOS** üzerinde uçtan uca doğrulandı. Script'ler zsh ister; macOS't
 | n8n | 2.x (test: 2.39), global | `npm i -g n8n` · **Docker gerekmez** |
 | cloudflared | isteğe bağlı | Telegram onayı için şart, bkz. [§ 8](#8-onay-modları-telegram-ve-form) · `brew install cloudflared` |
 | Telegram botu | isteğe bağlı | @BotFather'dan bir bot token'ı; Perde 1b için |
-| Google Gemini anahtarı | isteğe bağlı, ücretsiz | Perde 2'yi canlı LLM ile oynamak için; LLM'siz yedek de var |
+| Google Gemini anahtarı | isteğe bağlı, ücretsiz | Perde 2'yi canlı LLM ile oynamak için; LLM'siz yedek de var. Ücretsiz katman **günde 20 istek** verir, bkz. § 7 |
 
 İnternet yalnızca Telegram ve LLM için gerekir. İkisi de yoksa **04 numaralı offline
 workflow** ve `agent-demo.sh` aynı hikâyeyi internetsiz anlatır.
@@ -296,13 +297,24 @@ n8n'de `02 - Order Agent` workflow'unu aç. Üç tool node'una çift tıklayıp 
 `Siparis Agent` node'unun system prompt'u: *"Asla tahmin etme, asla uydurma. Tool sonucu boş
 döndüyse bulunamadı demektir."* `Chat Model` Google Gemini Flash, **temperature 0**.
 
-**Canlı çalıştırma**, iki yol:
+**Canlı çalıştırma**, üç yol:
 
-- **Editör içindeki Chat** (önerilen): `02`'yi aç → alttaki **Chat** düğmesi → yaz:
+- **Yerel chat sayfası** (en sağlamı): `http://localhost:4004/chat.html`. CAP'in servis ettiği küçük bir
+  sayfa; mesajı doğrudan `localhost:5678`'deki Chat Trigger'a gönderir, tünele hiç uğramaz, örnek
+  istemler tıklanabilir, geçen süreyi gösterir. Sipariş formundaki **Agent sohbeti** linki de buraya gider.
+- **Editör içindeki Chat**: `02`'yi aç → alttaki **Chat** düğmesi → yaz:
   `Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç`
-  Agent sırayla `listProducts` → `getCustomer` → `createOrder` çağırır; tool'lar canvas'ta sırayla yanar.
-- **Ayrı chat sayfası**: `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat`
-  (02 aktifken yayında; temiz ekran ama canvas'ı göremezsin).
+  Tool'lar canvas'ta sırayla yanar; mimariyi göstermenin en iyi yolu. Sekme n8n'in yeniden
+  başlatılmasından önce açıldıysa sayfayı yenile, yoksa "Failed to receive response" alırsın.
+- **n8n'in kendi chat sayfası**: `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat`.
+  Dikkat: bu sayfa mesajları `WEBHOOK_URL` üzerinden, yani **tünel adresinden** gönderir. Tünel koparsa
+  ya da yanıt 60 saniyeyi aşarsa "Failed to receive response" verir. Sahnede yerel sayfayı tercih et.
+
+> **Gemini ücretsiz katman kotası: modele göre günde 20 istek.** Her agent turu 2-4 istek harcar, yani
+> günde yaklaşık 5 sohbet. Aşınca 429 gelir ve kota ertesi gün (Pasifik gece yarısı, Türkiye saatiyle
+> ~10:00) sıfırlanır. Sahne günü canlı agent'ı provada harcama; provayı `agent-demo.sh` ile yap.
+> Yedek: ikinci bir Google hesabından ücretsiz anahtar (`./scripts/set-gemini-key.sh AIza...`),
+> ya da `Chat Model` node'unu Groq / Ollama / başka bir sağlayıcıya çevir.
 
 **LLM'siz yedek**, her hâlükârda hazır:
 
@@ -469,6 +481,9 @@ Veritabanı **in-memory SQLite**: `cds watch` her başladığında CSV'ler yenid
 | Telegram `inline keyboard button URL ... Wrong HTTP URL` | n8n localhost'ta, tünel yok | `./scripts/start-demo.sh --tunnel` |
 | Onay butonu bir şey açmıyor | Link bu makinedeki n8n'e gidiyor | Aynı bilgisayardaki tarayıcıdan tıkla (Telegram Web / Desktop) |
 | Telegram mesajı hiç gitmiyor | Tünel kapanmış | `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --tunnel --n8n` |
+| Chat: **Failed to receive response**, n8n'de execution yok | n8n'in chat sayfası ve editör, mesajı tünel adresine gönderir; tünel kopmuş ya da sekme eski | `http://localhost:4004/chat.html` kullan. Tünel için `check-demo.sh`; kopmuşsa n8n'i `--tunnel` ile yeniden başlat, editör sekmesini yenile |
+| Chat: **Error in workflow**, 1-2 sn içinde | Gemini 429: günlük 20 istek kotası dolmuş (ya da dakikalık sınır) | n8n → Executions'ta hatayı oku. Günlükse ertesi gün ~10:00'a kadar bekle, ikinci bir ücretsiz anahtar kullan ya da `agent-demo.sh` ile oyna |
+| Tünel 20-30 dakika sonra kendiliğinden kopuyor | Cloudflare quick tunnel kalıcı değildir | Perde 2'den hemen önce `./scripts/check-demo.sh` çalıştır; kopmuşsa n8n'i `--tunnel` ile yeniden başlat. Yerel chat sayfası tünelden etkilenmez |
 | Form: **Invalid Form Link** | URL elle kurulmuş | `onayFormUrl` alanındaki hazır adresi kullan |
 | Form linki `trycloudflare.com`'a gidiyor | n8n tünelli başlatılmış | Form modunda n8n'i tünelsiz başlat |
 | Gemini `no longer available to new users` / model 404 | Google model kimliğini kapatmış | `./scripts/pick-gemini-model.sh` |

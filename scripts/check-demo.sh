@@ -53,10 +53,12 @@ else
   if n8n_up; then
     CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 6 -X POST "$URL" \
       -H 'Content-Type: application/json' -H "X-API-Key: ${KEY:-}" \
-      -d '{"ID":"00000000-0000-0000-0000-000000000000","customer":"preflight","product":"preflight","qty":1,"amount":1,"currency":"TRY"}')
+      -d '{"ID":"22222222-2222-2222-2222-222222222222","customer":"preflight","product":"preflight","qty":1,"amount":1,"currency":"TRY"}')
+      # 2222... tohum verideki APPROVED siparis: amount 1 -> IF false -> approve(auto-rule) -> CAP idempotent 200.
+      # Boylece test n8n'de hatali execution birakmaz ve 03 Error Handler Telegram'a gurultu atmaz.
     case "$CODE" in
       200) ok "webhook canlı ve anahtar doğru (HTTP 200)"
-           info "not: bu test CAP'te olmayan bir ID gönderir, n8n tarafında 1 hatalı execution görürsün - normal" ;;
+           info "not: test, tohum verideki onaylı 2222… siparişini kullanır; CAP idempotent 200 döner, hatalı execution oluşmaz" ;;
       403) bad "HTTP 403 - X-API-Key uyuşmuyor. n8n'deki 'CAP Webhook Key' credential Value = '$KEY' olmalı"; note ;;
       404) bad "HTTP 404 - workflow aktif değil. n8n'de workflow'u aç -> Activate"; note ;;
       *)   bad "webhook yanıtı: HTTP $CODE"; note ;;

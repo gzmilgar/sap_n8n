@@ -14,7 +14,7 @@ Gereksinimler: zsh, Node ≥ 20, `n8n` ve `cds` global kurulu, macOS'ta hazır g
 | `setup-mac.sh` | Tek seferlik kurulum: `order-demo` içinde `npm install`, `.env.example` → `.env`, n8n'de "CAP Webhook Key" Header Auth credential'ı, 4 workflow'un import'u (credential bağlı). Workflow'lar zaten varsa import'u atlar. | `--force` yeniden import eder; UI'da seçtiğin credential'lar ve chat id sıfırlanır |
 | `start-demo.sh` | n8n (:5678) ve CAP (:4004) başlatır. Varsayılan: iki Terminal penceresi. n8n'in ayağa kalkmasını 120 sn'ye kadar bekler. | `--tunnel` cloudflared ile public URL (Telegram onayı için şart) · `--bg` arka plan, loglar `.demo-logs/` · `--cap` / `--n8n` yalnız biri |
 | `stop-demo.sh` | İkisini de durdurur, 4004 ve 5678 portlarını boşaltır. | `--cap` / `--n8n` yalnız biri (dayanıklılık demosunda `--n8n`) |
-| `check-demo.sh` | Sahne öncesi kontrol: portlar, workflow'lar aktif mi, hangi onay modundasın, o mod hazır mı. Bir şey kırmızıysa sıfırdan farklı çıkış kodu. | `--full` gerçek bir sipariş açıp zinciri uçtan uca dener; listeye 1 prova siparişi bırakır |
+| `check-demo.sh` | Sahne öncesi kontrol: portlar, workflow'lar aktif mi, tünel yanıt veriyor mu, hangi onay modundasın, o mod hazır mı. Webhook testi tohum verideki onaylı `2222…` siparişini kullanır; CAP idempotent 200 döner, hatalı execution ve Telegram hata bildirimi oluşmaz. Bir şey kırmızıysa sıfırdan farklı çıkış kodu. | `--full` gerçek bir sipariş açıp zinciri uçtan uca dener; listeye 1 prova siparişi bırakır |
 
 ## Sahnede
 
