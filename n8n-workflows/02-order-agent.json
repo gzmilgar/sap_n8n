@@ -36,7 +36,7 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3-flash-preview",
+        "modelName": "models/gemini-flash-latest",
         "options": {
           "temperature": 0
         }
@@ -55,7 +55,10 @@
           "name": "Google Gemini account"
         }
       },
-      "notes": "Google Gemini free tier - key from aistudio.google.com. To switch provider: delete this node, add another Chat Model, reconnect it to the agent's Chat Model port."
+      "notes": "503/429 gibi gecici hatalarda 5 deneme, 5 sn arayla (Retry On Fail).",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
