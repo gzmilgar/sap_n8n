@@ -316,7 +316,9 @@ döndüyse bulunamadı demektir."* `Chat Model` Google Gemini Flash, **temperatu
 > günde yaklaşık 5 sohbet. Aşınca 429 gelir ve kota ertesi gün (Pasifik gece yarısı, Türkiye saatiyle
 > ~10:00) sıfırlanır. Sahne günü canlı agent'ı provada harcama; provayı `agent-demo.sh` ile yap.
 > Yedek: ikinci bir Google hesabından ücretsiz anahtar (`./scripts/set-gemini-key.sh AIza...`),
-> ya da `Chat Model` node'unu Groq / Ollama / başka bir sağlayıcıya çevir.
+> ya da **açık kaynak model**: `./scripts/set-groq-key.sh gsk_...` agent'ı Groq üzerindeki Llama 3.3 70B'ye
+> çevirir (ücretsiz, günde binlerce istek, 1-2 sn yanıt; anahtar: console.groq.com). Ollama ile tamamen
+> yerel çalışmak da mümkün (`Chat Model` node'unu Ollama'ya çevir).
 
 **LLM'siz yedek**, her hâlükârda hazır:
 
@@ -452,6 +454,7 @@ Ayrıntı: [scripts/README.md](scripts/README.md).
 | `agent-demo.sh [-c] [-p] [-q] [--fast]` | Perde 2'yi LLM'siz oynar: üç tool çağrısını elle, konuşma hızında |
 | `set-chat-id.sh <id>` | Telegram chat id'yi 01 ve 03'e yazar (repo JSON'ları + n8n DB) |
 | `set-gemini-key.sh <AIza...>` | Gemini anahtarını test eder, credential olarak kaydeder, 02'ye bağlar |
+| `set-groq-key.sh <gsk_...>` | Agent'ı Groq üzerindeki açık kaynak Llama 3.3 70B'ye geçirir ve yayınlar (ücretsiz, yüksek kota) |
 | `pick-gemini-model.sh [--list] [model]` | Anahtarın tool calling yapabildiği bir Gemini modeli bulup 02'ye yazar |
 | `publish-workflows.sh [--check]` | Taslakları yayınlar, 01/02/04'ü aktif eder |
 | `windows/*.ps1` | Eski PowerShell sürümleri; bakımı yapılmıyor |

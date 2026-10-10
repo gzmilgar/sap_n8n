@@ -35,6 +35,7 @@ workflow'ları bellekte tuttuğu için **önce `stop-demo.sh`**, sonra bunlar, s
 |---|---|
 | `set-chat-id.sh <id>` | Telegram chat id'yi 01 ve 03'teki Telegram node'larına yazar: hem repodaki JSON'lara hem n8n'deki kopyalara. Seçili credential'lara dokunmaz. Yanlışlıkla bot token'ı yapıştırılırsa reddeder. Grup için `-100...`. |
 | `set-gemini-key.sh <AIza...>` | Anahtarı Google'a karşı test eder, `Google Gemini account` credential'ı olarak kaydeder, 02'deki `Chat Model` node'una bağlar. |
+| `set-groq-key.sh <gsk_...> [--model id] [--keep-repo]` | Agent'ı Groq üzerindeki açık kaynak Llama 3.3 70B'ye geçirir: anahtarı test eder, `Groq account` credential'ını kaydeder, 02'deki `Chat Model`'i Groq node'una çevirir (n8n + repo JSON) ve yayınlar. Ücretsiz katman günde binlerce istek verir. |
 | `pick-gemini-model.sh [--list] [models/xyz]` | Anahtarın **tool calling** yapabildiği bir Gemini modeli bulur ve 02'ye yazar. Google model kimliklerini zamanla kapattığı için repodaki kimlik 404 verebilir; bu script çözer. Çekirdeği `gemini_pick.py`. |
 | `publish-workflows.sh [--check]` | n8n 2.x yayınlanmış sürümü çalıştırır, taslağı değil. Bu script her demo workflow'unun taslağını yayınlar ve 01/02/04'ü aktif eder; UI'da Active kapat/aç ile eşdeğer. `--check` yalnız durumu gösterir. |
 
