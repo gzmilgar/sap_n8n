@@ -2,32 +2,21 @@
 
 > **SAP veriyi tutar, n8n orkestre eder, agent sadece bir arayüzdür.**
 
-SAP Inside Track Ankara (Ekim 2026) için hazırlanan **20 dakikalık canlı demo**nun tam paketi:
-SAP CAP servisi, dört n8n workflow'u, sahne script'leri ve sunum destesi.
-Her şey bir dizüstü bilgisayarda, **Docker'sız ve BTP hesabı gerektirmeden** çalışır.
-
-| Ne arıyorsun | Nereye bak |
-|---|---|
-| Kurup çalıştırmak | Bu dosya: [Hızlı başlangıç](#5-hızlı-başlangıç) → [Demoyu çalıştırma](#7-demoyu-çalıştırma) |
-| CAP uygulaması içeriden (veri modeli, fiyat, webhook, action'lar) | [order-demo/MIMARI.md](order-demo/MIMARI.md) |
-| Workflow'lar node node | [n8n-workflows/README.md](n8n-workflows/README.md) |
-| Script'ler | [scripts/README.md](scripts/README.md) |
-| Sunum destesi ve sahnedeki dakika dakika akış | [sunum/README.md](sunum/README.md) · [sunum/SUNUM-NOTLARI.md](sunum/SUNUM-NOTLARI.md) |
+SAP Inside Track Ankara 2026 için hazırlanan canlı demonun kaynak paketi: bir **SAP CAP** sipariş servisi,
+dört **n8n** workflow'u ve demoyu tek komutla kurup çalıştıran script'ler. Her şey bir dizüstü bilgisayarda,
+**Docker'sız ve BTP hesabı gerektirmeden** çalışır. Sunum ve video dosyaları bu repoda değildir.
 
 <details>
 <summary><b>English summary</b></summary>
 
-A two-act live demo of an order-approval loop built with **SAP CAP** (OData V4, Fiori Elements)
-and **n8n**. Act 1: CAP fires a webhook on order creation; n8n auto-approves orders under a
-threshold and asks a human on Telegram above it, then writes the decision back through CAP
-`approve`/`reject` actions. Act 2: an n8n AI Agent (Google Gemini free tier) uses the same
-OData service through three HTTP Request tools (look up product, look up customer, create order).
-The agent only *creates*; the approval decision stays in a deterministic IF node and a human.
-Everything runs locally (in-memory SQLite, no Docker). Docs are in Turkish; the code, workflow
-JSONs and scripts are self-explanatory.
+A two-act live demo of an order-approval loop built with **SAP CAP** (OData V4, Fiori Elements) and
+**n8n**. Act 1: CAP fires a webhook on order creation; n8n auto-approves orders under a threshold and asks
+a human on Telegram above it, then writes the decision back through CAP `approve`/`reject` actions.
+Act 2: an n8n AI Agent (open-source model on Groq, or Gemini) uses the same OData service through three
+HTTP Request tools (look up product, look up customer, create order). The agent only *creates*; the
+approval decision stays in a deterministic IF node and a human. Everything runs locally (in-memory
+SQLite, no Docker). Docs are in Turkish; code, workflow JSONs and scripts are self-explanatory.
 </details>
-
----
 
 ## İçindekiler
 
@@ -38,7 +27,7 @@ JSONs and scripts are self-explanatory.
 5. [Hızlı başlangıç](#5-hızlı-başlangıç)
 6. [Kurulum ayrıntıları](#6-kurulum-ayrıntıları)
 7. [Demoyu çalıştırma](#7-demoyu-çalıştırma)
-8. [Onay modları: Telegram ve Form](#8-onay-modları-telegram-ve-form)
+8. [Onay kanalları: Telegram ve Form](#8-onay-kanalları-telegram-ve-form)
 9. [Ortam değişkenleri](#9-ortam-değişkenleri)
 10. [Script'ler](#10-scriptler)
 11. [Workflow'lar](#11-workflowlar)
@@ -46,9 +35,7 @@ JSONs and scripts are self-explanatory.
 13. [Sorun giderme](#13-sorun-giderme)
 14. [Sık sorulan sorular](#14-sık-sorulan-sorular)
 15. [Üretime taşırken](#15-üretime-taşırken)
-16. [Sunum destesi](#16-sunum-destesi)
-17. [Windows notu](#17-windows-notu)
-18. [Lisans ve katkı](#18-lisans-ve-katkı)
+16. [Notlar](#16-notlar)
 
 ---
 
@@ -59,7 +46,7 @@ JSONs and scripts are self-explanatory.
 | Perde | Ne olur |
 |---|---|
 | **1 · APIs** | CAP'te sipariş oluşur → CAP webhook'u n8n'i tetikler → tutar **10.000 TRY** üzerindeyse Telegram'dan onay istenir, değilse otomatik onaylanır → sonuç CAP'e `approve` / `reject` action'ı ile geri yazılır → Fiori listesinde durum rengi değişir. |
-| **2 · Intelligent** | Bir n8n **AI Agent**, üç HTTP Request Tool ile aynı CAP OData servisini kullanır: ürün ara, müşteri ara, sipariş oluştur. Sipariş açılır → CAP handler Perde 1'i tetikler → Telegram yine öter → **döngü kapanır**. |
+| **2 · Intelligent** | Bir n8n **AI Agent**, üç HTTP Request Tool ile aynı CAP OData servisini kullanır: ürün ara, müşteri ara, sipariş oluştur. Sipariş açılır → CAP handler Perde 1'i tetikler → onay yine insana gelir → **döngü kapanır**. |
 
 Üç tasarım kararı demonun omurgasıdır:
 
@@ -75,7 +62,7 @@ JSONs and scripts are self-explanatory.
             │   Orders · Products · Customers                           │
             │   actions: approve(ID, approvedBy) · reject(ID, reason)   │
             │  Fiori Elements preview  (renkli durum sütunu)            │
-            │  Sipariş formu  (app/index.html)                          │
+            │  Sipariş formu (app/index.html) · Agent sohbeti (chat.html)
             └───────┬───────────────────────────────────▲───────────────┘
    after CREATE     │ POST webhook (X-API-Key)          │ POST /approve · /reject
    (commit sonrası) │                                   │
@@ -84,79 +71,67 @@ JSONs and scripts are self-explanatory.
             │  01  Webhook → IF tutar > 10.000 ─ hayır → approve(auto-rule)
             │                                  └ evet  → Telegram send-and-wait
             │                                             ├ Onayla → approve(Telegram)
-            │                                             └ Reddet → reject(...)
-            │  02  Chat Trigger → AI Agent (Gemini) ─┬ listProducts  (GET Products)
-            │                                        ├ getCustomer   (GET Customers)
-            │                                        └ createOrder   (POST Orders) ──► 01'i tetikler
+            │                                             └ Reddet → gerekçe → reject(...)
+            │  02  Chat Trigger → AI Agent ─┬ listProducts  (GET Products)
+            │                               ├ getCustomer   (GET Customers)
+            │                               └ createOrder   (POST Orders) ──► 01'i tetikler
             │  03  Error Trigger → Telegram
-            │  04  01'in Telegram'sız kopyası: onay n8n Form ile (internetsiz yedek)
+            │  04  01'in Telegram'sız kopyası: onay n8n Form ile (+ Telegram'a metin bildirim)
             └───────────────────────────────────────────────────────────┘
 ```
 
-Bir siparişin hayatı (ayrıntı: [order-demo/MIMARI.md § 6](order-demo/MIMARI.md#6-bir-siparişin-hayatı--adım-adım)):
+Bir siparişin hayatı:
 
-1. `POST /Orders` gelir (script, form ya da agent).
-2. `before CREATE`: para birimi `TRY`, durum `PENDING`; `amount` yoksa `qty × unitPrice` hesaplanır, ürün yoksa **400**.
+1. `POST /Orders` gelir (form, script ya da agent).
+2. `before CREATE`: para birimi `TRY`, durum `PENDING`; `amount` yoksa `qty × unitPrice` hesaplanır, ürün katalogda yoksa **400**.
 3. INSERT ve commit.
 4. `after CREATE` → `req.on('succeeded')` içinde webhook atılır. Commit'ten *sonra* tetiklenir; yoksa n8n'in milisaniyeler içinde dönen `approve` çağrısı INSERT ile yarışıp 404 alırdı.
-5. n8n karar verir ve `approve` / `reject` ile geri yazar. Action'lar **idempotent**: iki kez tıklamak veya webhook retry'ı demoyu bozmaz.
+5. n8n karar verir ve `approve` / `reject` ile geri yazar. Action'lar **idempotent**: iki kez tıklamak veya webhook retry'ı demoyu bozmaz; farklı bir nihai duruma geçiş **409** döner.
 6. Fiori listesi yenilenince `statusCriticality` (yeşil 3 / sarı 2 / kırmızı 1) renk değiştirir.
 
 ## 3. Repo haritası
 
 ```
 sap_n8n/
-├─ README.md                           ← bu dosya
-├─ SUNUM.pptx                          ← 11 slayt, konuşmacı notlu
-├─ sunum/
-│  ├─ README.md                        desteyi yeniden üretme
-│  ├─ SAP-n8n-Sunum.html               sahnedeki 8 slaytlık HTML deste (tek dosya)
-│  ├─ SUNUM-NOTLARI.md                 sahnedeki dakika dakika akış, kurtarma hamleleri, SSS
-│  ├─ SAHNE-KARTI.md                   tek sayfa: linkler, dört varyant, kurtarma
-│  ├─ build-deck.js · lib.js           pptxgenjs ile deste üretimi
+├─ README.md                           ← bu dosya (tek doküman)
 ├─ order-demo/                         # SAP CAP servisi
-│  ├─ MIMARI.md                        uygulamanın satır satır anlatımı
-│  ├─ README.md                        kısa özet + hızlı doğrulama
-│  ├─ db/schema.cds                    Orders · Customers · Products
+│  ├─ db/schema.cds                    Orders (managed) · Customers · Products
 │  ├─ db/data/*.csv                    4 müşteri · 6 ürün · 3 sipariş (fiyatlar burada)
 │  ├─ srv/order-service.cds            OData servisi + approve/reject action'ları
 │  ├─ srv/order-service.js             tutar hesabı, webhook, idempotent onay
-│  ├─ app/fiori-annotations.cds        UI.LineItem, criticality, Türkçe etiketler
+│  ├─ app/fiori-annotations.cds        UI.LineItem, criticality, yeniden-eskiye sıralama
 │  ├─ app/index.html                   "Sipariş Aç" formu, canlı tutar, kendini yenileyen liste
-│  ├─ app/chat.html                    agent için yerel chat sayfası (tünelden bağımsız)
+│  ├─ app/chat.html                    agent için yerel sohbet sayfası (tünelden bağımsız)
 │  └─ .env.example · package.json
 ├─ n8n-workflows/
-│  ├─ README.md                        her workflow node node
-│  ├─ 01-order-approval.json           Perde 1 · Telegram onayı            (9 node)
-│  ├─ 02-order-agent.json              Perde 2 · AI Agent + 3 tool          (7 node)
-│  ├─ 03-error-handler.json            hata → Telegram                     (2 node)
-│  └─ 04-order-approval-OFFLINE.json   Perde 1'in Form ile internetsiz hâli (8 node)
-└─ scripts/
-   ├─ README.md
-   ├─ setup-mac.sh · start-demo.sh · stop-demo.sh · check-demo.sh
-   ├─ create-order.sh · watch-order.sh · agent-demo.sh
-   ├─ set-chat-id.sh · set-gemini-key.sh · pick-gemini-model.sh · publish-workflows.sh
-   ├─ lib-demo.sh · gemini_pick.py     ortak yardımcılar
-   └─ windows/                         PowerShell sürümleri (bakımı yapılmıyor)
+│  ├─ 01-order-approval.json           Perde 1 · Telegram onayı
+│  ├─ 02-order-agent.json              Perde 2 · AI Agent + 3 tool
+│  ├─ 03-error-handler.json            hata → Telegram
+│  └─ 04-order-approval-OFFLINE.json   Perde 1'in Form ile hâli
+└─ scripts/                            macOS (zsh)
+   ├─ setup-mac.sh · start-demo.sh · stop-demo.sh · check-demo.sh · mode.sh
+   ├─ create-order.sh · watch-order.sh · agent-demo.sh · form-url.sh
+   ├─ set-chat-id.sh · set-groq-key.sh · set-gemini-key.sh · pick-gemini-model.sh
+   ├─ publish-workflows.sh
+   └─ lib-demo.sh · gemini_pick.py     ortak yardımcılar
 ```
 
 ## 4. Gereksinimler
 
-Paket **macOS** üzerinde uçtan uca doğrulandı. Script'ler zsh ister; macOS'ta hazır gelen
-`python3` ve `sqlite3` da kullanılır.
+Paket **macOS** üzerinde doğrulandı. Script'ler zsh ister; macOS'ta hazır gelen `python3` ve `sqlite3`
+kullanılır.
 
 | Bileşen | Sürüm | Not |
 |---|---|---|
-| macOS | Apple Silicon üzerinde test edildi | Intel'de de çalışması beklenir |
-| Node.js | **≥ 20** (`package.json` → `engines`), test: v24 | nvm önerilir; script'ler nvm PATH'ini kendileri çözer |
+| Node.js | **≥ 20** (test: v24) | nvm önerilir; script'ler nvm PATH'ini kendileri çözer |
 | `@sap/cds-dk` | 10.x, global | `npm i -g @sap/cds-dk` |
 | n8n | 2.x (test: 2.39), global | `npm i -g n8n` · **Docker gerekmez** |
-| cloudflared | isteğe bağlı | Telegram onayı için şart, bkz. [§ 8](#8-onay-modları-telegram-ve-form) · `brew install cloudflared` |
-| Telegram botu | isteğe bağlı | @BotFather'dan bir bot token'ı; Perde 1b için |
-| Google Gemini anahtarı | isteğe bağlı, ücretsiz | Perde 2'yi canlı LLM ile oynamak için; LLM'siz yedek de var. Ücretsiz katman **günde 20 istek** verir, bkz. § 7 |
+| Telegram botu | isteğe bağlı | @BotFather'dan bot token'ı; Perde 1b için |
+| LLM anahtarı | isteğe bağlı, ücretsiz | **Groq** (console.groq.com, açık kaynak modeller, yüksek kota) ya da Google Gemini (günde 20 istek / model). Perde 2 LLM'siz de oynanır |
+| cloudflared | isteğe bağlı | Yalnızca Telegram onayını **başka bir cihazdan** vermek istiyorsan (bkz. § 8) |
 
-İnternet yalnızca Telegram ve LLM için gerekir. İkisi de yoksa **04 numaralı offline
-workflow** ve `agent-demo.sh` aynı hikâyeyi internetsiz anlatır.
+İnternet yalnızca Telegram ve LLM için gerekir. İkisi de yoksa **04 numaralı Form workflow'u** ve
+`agent-demo.sh` aynı hikâyeyi internetsiz anlatır.
 
 ## 5. Hızlı başlangıç
 
@@ -167,49 +142,39 @@ cd ~/sap_n8n
 ./scripts/setup-mac.sh          # 1) tek seferlik kurulum: npm install, .env, credential + workflow import
 ./scripts/start-demo.sh         # 2) iki Terminal penceresi: n8n (:5678) ve cds watch (:4004)
 open http://localhost:5678      # 3) hesap aç → credential'ları bağla → chat id → 01'i Activate  (bkz. § 6)
-./scripts/check-demo.sh --full  # 4) sahne öncesi kontrol; son satır "Her şey hazır" demeli
+./scripts/check-demo.sh --full  # 4) ön kontrol; son satır "Her şey hazır" demeli
 
 ./scripts/create-order.sh -a 500      # otomatik onay
-./scripts/create-order.sh -a 15000    # Telegram onayı  (--tunnel ile başlatılmış olmalı)
-open "http://localhost:4004/\$fiori-preview/OrderService/Orders#preview-app"
+./scripts/create-order.sh -a 15000    # Telegram'a Onayla / Reddet düşer
+open http://localhost:4004            # sipariş formu + canlı liste
+open http://localhost:4004/chat.html  # agent sohbeti
 
 ./scripts/stop-demo.sh          # kapat
 ```
 
-Telegram onayını gerçekten görmek için n8n'i `./scripts/start-demo.sh --tunnel` ile
-başlat; nedenini [§ 8](#8-onay-modları-telegram-ve-form) anlatıyor.
+Adresler: sipariş formu `http://localhost:4004` · Fiori listesi
+`http://localhost:4004/$fiori-preview/OrderService/Orders#preview-app` · OData
+`http://localhost:4004/odata/v4/order` · n8n `http://localhost:5678`.
 
 ## 6. Kurulum ayrıntıları
 
 ### 6.1 `setup-mac.sh` ne yapar
 
 1. `order-demo` içinde `npm install` çalıştırır ve `.env.example`'dan `.env` üretir.
-2. n8n veritabanında **"CAP Webhook Key"** adlı bir *Header Auth* credential'ı oluşturur; değeri `.env`'deki `N8N_WEBHOOK_KEY` ile aynıdır. Böylece CAP'in gönderdiği `X-API-Key` header'ı ile n8n'in beklediği anahtar baştan senkron olur.
-3. Dört workflow'u n8n'e import eder ve webhook node'larına bu credential'ı **bağlı** hâlde getirir.
+2. n8n veritabanında **"CAP Webhook Key"** adlı bir *Header Auth* credential'ı oluşturur; değeri `.env`'deki `N8N_WEBHOOK_KEY` ile aynıdır.
+3. Dört workflow'u `demo01`…`demo04` sabit kimlikleriyle import eder, webhook node'larına bu credential'ı bağlı getirir; `01/02/04` hata workflow'u olarak `03`'ü gösterir.
 
-> n8n kuruluysa önce durdur: `./scripts/stop-demo.sh`. Import, n8n kapalıyken yapılır.
+> n8n kuruluysa önce durdur: `./scripts/stop-demo.sh`. Import n8n kapalıyken yapılır. Workflow'lar
+> zaten varsa import atlanır; `--force` ile zorlarsan UI'da seçtiğin credential'lar ve chat id sıfırlanır.
 
-> Script, demo workflow'ları n8n'de zaten varsa import'u **atlar**. `--force` ile zorlarsan
-> arayüzde seçtiğin Telegram / Gemini credential'ları ve chat id sıfırlanır, workflow'lar
-> pasife düşer; § 6.2'yi baştan yaparsın.
-
-### 6.2 n8n'de elle yapılacak dört şey
+### 6.2 n8n'de elle yapılacaklar
 
 `http://localhost:5678` → ilk açılışta yerel hesabını oluştur, sonra:
 
-**a) İki credential oluştur** (secret içerdikleri için script yapamaz):
+**a) Telegram credential'ı:** Credentials → New → **Telegram API** → bot token'ı → adı `Telegram account`.
+01, 03 ve 04'teki Telegram node'larını açıp bu credential'ı seç (`REPLACE_WITH_YOUR_CREDENTIAL_ID` yazan yerler).
 
-| Credential adı | Tip | Hangi node'lar | Zorunlu mu |
-|---|---|---|---|
-| `Telegram account` | Telegram API (bot token) | 01 ve 03'teki Telegram node'ları | Evet, Perde 1b için |
-| `Google Gemini account` | Google Gemini (PaLM) API | 02'deki `Chat Model` | Hayır, Perde 2 LLM'siz de oynanır |
-
-Gemini anahtarı için tek komut da var: `./scripts/set-gemini-key.sh AIza...` anahtarı test eder,
-credential olarak kaydeder ve `Chat Model` node'una bağlar. Ücretsiz anahtar: <https://aistudio.google.com/apikey>.
-
-**b) Node'larda credential'ı seç.** `REPLACE_WITH_YOUR_CREDENTIAL_ID` yazan her node'u açıp kendi credential'ını seç ve kaydet.
-
-**c) Telegram chat id'ni yaz.** En kolayı, n8n kapalıyken:
+**b) Chat id:** n8n kapalıyken tek komut, repodaki JSON'ları ve n8n'deki kopyaları birlikte günceller:
 
 ```zsh
 ./scripts/stop-demo.sh
@@ -217,45 +182,30 @@ credential olarak kaydeder ve `Chat Model` node'una bağlar. Ücretsiz anahtar: 
 ./scripts/start-demo.sh
 ```
 
-Hem repodaki JSON'ları hem n8n'deki kopyaları günceller, seçtiğin credential'lara dokunmaz.
-Chat id'ni bilmiyorsan Telegram'da **@get_id_bot** ile konuş. Botun sana mesaj atabilmesi için
-**önce sen bota** bir mesaj göndermiş olmalısın.
+Chat id'ni bilmiyorsan Telegram'da **@get_id_bot** ile konuş. Bot sana yazabilsin diye **önce sen bota**
+bir mesaj gönder.
 
-**d) `01 - Order Approval` workflow'unu Activate et.** Offline provası için `04`'ü de aktif et.
-
-> **En sık yapılan hata.** Workflow aktif değilse production webhook kayıtlı olmaz ve CAP
-> `404` alır. `n8n update:workflow --active=true` CLI komutu n8n 2.x'te yayınlanmış sürüm
-> üretmediği için **işe yaramaz**; UI'daki Activate anahtarını kullan.
-
-### 6.3 n8n 2.x'te "taslak" ve "yayınlanmış" sürüm
-
-n8n 2.x, bir workflow'un **yayınlanmış** sürümünü çalıştırır, editörde gördüğün taslağı değil.
-Editörde bir şey değiştirip kaydettiğinde production webhook hâlâ eski sürümü çalıştırıyor
-olabilir. Belirtisi: ayarlar "tutmuyor", ya da `Credential with ID ... does not exist`.
-
-Çözüm: workflow'un **Active** anahtarını kapat/aç. Toplu çözüm: `./scripts/publish-workflows.sh`
-(taslakları yayınlar, 01/02/04'ü aktif eder; `--check` ile sadece durumu gösterir).
-
-### 6.4 Kontrol
+**c) LLM anahtarı** (Perde 2 için, isteğe bağlı), n8n kapalıyken tek komut:
 
 ```zsh
-./scripts/check-demo.sh          # hızlı: portlar, workflow'lar aktif mi, hangi onay modundasın
-./scripts/check-demo.sh --full   # + gerçek bir sipariş açıp tüm zinciri dener (listeye 1 prova siparişi bırakır)
+./scripts/set-groq-key.sh gsk_...        # Groq: açık kaynak model, kota derdi yok (varsayılan)
+./scripts/set-gemini-key.sh AIza...      # ya da Google Gemini (ücretsiz katman: günde 20 istek / model)
 ```
 
+İkisi de anahtarı test eder, credential olarak kaydeder, 02'deki `Chat Model` node'unu ayarlar; Groq
+script'i yayınlamayı da yapar.
+
+**d) Activate:** `01 - Order Approval` ve `04`'ü (form modu için) **Activate** et. Workflow aktif
+değilse production webhook kayıtlı olmaz, CAP `404` alır. `check-demo.sh` bunu yakalar.
+
+### 6.3 n8n 2.x'te taslak ve yayınlanmış sürüm
+
+n8n 2.x bir workflow'un **yayınlanmış** sürümünü çalıştırır, editörde gördüğün taslağı değil. Editörde
+değişiklik yapıp kaydettikten sonra Active anahtarını kapat/aç, ya da n8n kapalıyken
+`./scripts/publish-workflows.sh` (hepsini yayınlar, 01/02/04'ü aktif eder). Belirtisi: ayarlar "tutmuyor"
+ya da `Credential with ID ... does not exist`.
+
 ## 7. Demoyu çalıştırma
-
-Sahnedeki tam senaryo, konuşma metni ve dakika planı [sunum/SUNUM-NOTLARI.md](sunum/SUNUM-NOTLARI.md)'de.
-Burada teknik akış var.
-
-### Açık olacak ekranlar
-
-| Ekran | Adres |
-|---|---|
-| Sipariş Aç formu | `http://localhost:4004` |
-| Fiori listesi | `http://localhost:4004/$fiori-preview/OrderService/Orders#preview-app` |
-| n8n editörü | `http://localhost:5678` |
-| Telegram Web | `web.telegram.org` → bot sohbeti (onay butonuna **buradan** basılır) |
 
 ### Perde 1a · Eşiğin altı, insan yok
 
@@ -263,161 +213,106 @@ Burada teknik akış var.
 ./scripts/create-order.sh -a 500
 ```
 
-CAP kaydeder, webhook atar; n8n'de IF *false* dalı `approve(ID, "auto-rule")` çağırır. Fiori'de
-sipariş yaklaşık 1 saniyede **APPROVED / auto-rule** olur. n8n → Executions'ta adımları göster.
+CAP kaydeder, webhook atar; n8n'de IF *false* dalı `approve(ID, "auto-rule")` çağırır. Liste yaklaşık
+1 saniyede **APPROVED / auto-rule** olur. n8n → Executions'ta adımları göster.
 
 ### Perde 1b · Eşiğin üstü, insan devrede
 
 ```zsh
-./scripts/create-order.sh -a 15000
+./scripts/create-order.sh -a 15000      # ya da formdan: Anadolu Makina · Filtre Kartuşu · 40
 ```
 
-n8n *send-and-wait* ile durur; execution **waiting** durumuna geçer ve saatlerce bekleyebilir.
-Telegram'a sipariş özeti ile **Onayla / Reddet** butonları düşer. Onayla → tarayıcıda
-"Action recorded" sayfası açılır (onay budur; sohbetteki mesaj kendini güncellemez, normaldir)
-→ Fiori'de **APPROVED / Telegram**.
+n8n *send-and-wait* ile durur; execution **waiting**'e geçer. Telegram'a özet + **Onayla / Reddet**
+düşer. Onayla → "Action recorded" sayfası → listede **APPROVED / Telegram**.
 
-**Reddet** iki adımlıdır: bot "Ret Gerekcesi" mesajı ve **Gerekce Yaz** düğmesi gönderir, kısa bir form açılır.
-Gerekçe yazılınca sipariş **REJECTED** olur ve gerekçe `note` alanına düşer. Form **2 dakika** içinde
+**Reddet** iki adımlıdır: bot "Ret Gerekcesi" mesajı ve **Gerekce Yaz** düğmesi gönderir, kısa bir form
+açılır. Gerekçe yazılınca **REJECTED** olur ve gerekçe `note` alanına düşer. Form **2 dakika** içinde
 doldurulmazsa workflow kendiliğinden devam eder ve sipariş "Telegram uzerinden reddedildi" notuyla
-REJECTED olur. Yani Reddet'e basıp formu unutmak demoyu kilitlemez.
+REJECTED olur.
 
-Tutar vermezsen CAP hesaplar: `./scripts/create-order.sh` → 40 × 375,00 = **15.000,00**
-(Endüstriyel Filtre Kartuşu). Diğer seçenekler: `-c` müşteri, `-p` ürün, `-q` adet.
-`./scripts/watch-order.sh <ID>` bir siparişi sonuçlanana kadar izler.
+Tutar vermezsen CAP hesaplar: `./scripts/create-order.sh` → 40 × 375,00 = **15.000,00**.
+`-c` müşteri, `-p` ürün, `-q` adet. `./scripts/watch-order.sh <ID>` bir siparişi sonuçlanana kadar izler.
 
 ### Perde 2 · AI Agent
 
-n8n'de `02 - Order Agent` workflow'unu aç. Üç tool node'una çift tıklayıp açıklamalarını göster:
+n8n'de `02 - Order Agent` workflow'unu aç; üç tool node'unun açıklamalarını ve `Siparis Agent`
+system prompt'unu göster (*"Asla tahmin etme, asla uydurma. Tool sonucu boş döndüyse bulunamadı demektir."*).
 
-| Tool | Yaptığı çağrı | Açıklamadaki kritik cümle |
-|---|---|---|
-| `listProducts` | `GET /Products?$filter=contains(name,'…')` | "sipariş oluşturmadan ÖNCE ürünün var olduğunu doğrulamak ve birim fiyatını öğrenmek için MUTLAKA bu tool'u kullan" |
-| `getCustomer` | `GET /Customers?$filter=contains(name,'…')` | "boş liste dönerse müşteri sistemde KAYITLI DEĞİLDİR" |
-| `createOrder` | `POST /Orders` | "bu tool veri yazar, bu yüzden sadece … doğruladıktan SONRA çağır" |
+Çalıştırmak için üç yol:
 
-`Siparis Agent` node'unun system prompt'u: *"Asla tahmin etme, asla uydurma. Tool sonucu boş
-döndüyse bulunamadı demektir."* `Chat Model` Google Gemini Flash, **temperature 0**.
+- **Yerel sohbet sayfası** (en sağlamı): `http://localhost:4004/chat.html`. Mesajı doğrudan
+  `localhost:5678`'deki Chat Trigger'a gönderir, örnek istemler tıklanabilir, geçen süreyi gösterir.
+- **Editör içindeki Chat:** `02`'yi aç → alttaki **Chat** düğmesi. Tool'lar canvas'ta sırayla yanar.
+  n8n yeniden başlatıldıysa sekmeyi yenile.
+- n8n'in kendi sayfası `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat`:
+  mesajı `WEBHOOK_URL` üzerinden gönderir; tünel kullanıyorsan tünel koparsa çalışmaz.
 
-**Canlı çalıştırma**, üç yol:
+Örnek istemler:
 
-- **Yerel chat sayfası** (en sağlamı): `http://localhost:4004/chat.html`. CAP'in servis ettiği küçük bir
-  sayfa; mesajı doğrudan `localhost:5678`'deki Chat Trigger'a gönderir, tünele hiç uğramaz, örnek
-  istemler tıklanabilir, geçen süreyi gösterir. Sipariş formundaki **Agent sohbeti** linki de buraya gider.
-- **Editör içindeki Chat**: `02`'yi aç → alttaki **Chat** düğmesi → yaz:
-  `Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç`
-  Tool'lar canvas'ta sırayla yanar; mimariyi göstermenin en iyi yolu. Sekme n8n'in yeniden
-  başlatılmasından önce açıldıysa sayfayı yenile, yoksa "Failed to receive response" alırsın.
-- **n8n'in kendi chat sayfası**: `http://localhost:5678/webhook/b2000000-0000-4000-8000-000000000011/chat`.
-  Dikkat: bu sayfa mesajları `WEBHOOK_URL` üzerinden, yani **tünel adresinden** gönderir. Tünel koparsa
-  ya da yanıt 60 saniyeyi aşarsa "Failed to receive response" verir. Sahnede yerel sayfayı tercih et.
-
-> **Gemini ücretsiz katman kotası: modele göre günde 20 istek.** Her agent turu 2-4 istek harcar, yani
-> günde yaklaşık 5 sohbet. Aşınca 429 gelir ve kota ertesi gün (Pasifik gece yarısı, Türkiye saatiyle
-> ~10:00) sıfırlanır. Sahne günü canlı agent'ı provada harcama; provayı `agent-demo.sh` ile yap.
-> Yedek: ikinci bir Google hesabından ücretsiz anahtar (`./scripts/set-gemini-key.sh AIza...`),
-> ya da **açık kaynak model**: `./scripts/set-groq-key.sh gsk_...` agent'ı Groq üzerindeki Llama 3.3 70B'ye
-> çevirir (ücretsiz, günde binlerce istek, 1-2 sn yanıt; anahtar: console.groq.com). Ollama ile tamamen
-> yerel çalışmak da mümkün (`Chat Model` node'unu Ollama'ya çevir).
+| İstem | Beklenen |
+|---|---|
+| `Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç` | 15.000 TRY sipariş oluşur, onay kanalına düşer |
+| `Ege Teknik'e 5 adet Conta Seti 100lük siparişi aç` | 475 TRY, otomatik onay |
+| `Toros Kimya'ya 3 adet Süper Filtre 9000 siparişi aç` | "bulunamadı", sipariş açılmaz |
+| `Yok Böyle Firma'ya 2 kutu Conta Seti 100lük siparişi aç` | "müşteri kayıtlı değil", sipariş açılmaz |
+| `Sensörlü Debimetre'nin birim fiyatı ne?` | 2.750 TRY; yalnız `listProducts` çağrılır |
+| `Az önce açtığın siparişi onayla` | Onay tool'u yok; karar kuralda ve insanda |
 
 **LLM'siz yedek**, her hâlükârda hazır:
 
 ```zsh
 ./scripts/agent-demo.sh                      # üç çağrıyı elle, konuşma hızında
-./scripts/agent-demo.sh -p "Olmayan Urun"    # ürün bulunamadı → agent DURUR, sipariş açılmaz
+./scripts/agent-demo.sh -p "Olmayan Urun"    # ürün bulunamadı → agent DURUR
 ./scripts/agent-demo.sh -c "Yok Boyle Firma" # müşteri bulunamadı → agent DURUR
-./scripts/agent-demo.sh --fast               # duraklamasız (prova için)
+./scripts/agent-demo.sh --fast               # duraklamasız
 ```
 
-Mimari mesaj aynı kalır: "agent'ın yaptığı tam olarak bu üç çağrı". Fiyatı kullanıcı vermez,
-**SAP söyler**.
+### Döngü ve dayanıklılık
 
-### Döngü kapanıyor
-
-Agent'ın açtığı sipariş 15.000 TRY olduğu için CAP webhook'u Perde 1'deki **aynı** workflow'u
-tetikler ve Telegram'a onay düşer. Agent oluşturdu, **onaylamadı**.
-
-### Dayanıklılık vurgusu
+Agent'ın açtığı 15.000'lik sipariş Perde 1'deki **aynı** workflow'u tetikler; agent oluşturdu,
+**onaylamadı**. n8n kapalıyken de sipariş oluşur:
 
 ```zsh
 ./scripts/stop-demo.sh --n8n        # orkestrasyonu kapat
-./scripts/create-order.sh -a 700    # sipariş yine oluşur: HTTP 201
+./scripts/create-order.sh -a 700    # HTTP 201, sipariş PENDING kalır
 ./scripts/start-demo.sh --n8n       # geri getir
 ```
 
-CAP logunda yalnızca `n8n webhook failed ... - order was still created` uyarısı görünür.
+## 8. Onay kanalları: Telegram ve Form
 
-## 8. Onay modları: Telegram ve Form
+CAP hangi workflow'a göndereceğini `.env`'den okur; `./scripts/mode.sh telegram|form` dosyayı yazar ve
+CAP'i yeniden başlatır (~10 sn, liste 3 tohum kayda döner). n8n'e dokunmaz; 01 ve 04 aynı anda aktiftir.
 
-Demonun en kritik operasyonel ayrıntısı.
+### A · Telegram, tünelsiz (varsayılan)
 
-### Telegram onayı `localhost` ile çalışmaz
+Telegram `localhost` adresli düğmeleri reddeder ama **IP adresli** düğmeleri kabul eder.
+`start-demo.sh` tünel yoksa n8n'i `WEBHOOK_URL=http://127.0.0.1:5678/` ile başlatır; Onayla / Reddet
+düğmeleri `127.0.0.1`'i gösterir ve **n8n'in çalıştığı bilgisayardaki** Telegram Web ya da Desktop'tan
+tıklanınca çalışır. Tünel, cloudflared, özel port gerekmez; Telegram API'ye (443) erişim yeter.
+Düğmeye telefondan basılamaz.
 
-n8n onay butonlarını Telegram sunucusuna gönderir; Telegram `localhost` adresli butonları reddeder:
-
-```
-Bad Request: inline keyboard button URL 'http://localhost:5678/...' is invalid: Wrong HTTP URL
-```
-
-Node'daki "Approve Within Chat" seçeneği de kurtarmaz (o da `setWebhook` çağırır, loopback
-reddedilir). n8n 2.x'te eski `--tunnel` bayrağı kaldırılmıştır. Çözüm: n8n'e public bir adres
-vermek.
-
-### Mod A · Telegram (tünelli)
+### A2 · Telegram, tünelli (başka cihazdan onay)
 
 ```zsh
-brew install cloudflared            # bir kerelik, hesap gerektirmez
-./scripts/start-demo.sh --tunnel    # cloudflared açar, n8n'i public URL ile başlatır
+brew install cloudflared
+./scripts/start-demo.sh --tunnel     # cloudflared quick tunnel açar, n8n'i public URL ile başlatır
 ```
 
-`.env` → `N8N_WEBHOOK_URL=http://localhost:5678/webhook/order-approval`
+Düğmeler telefondan da çalışır. Ağın **7844 portuna** çıkışa izin vermesi gerekir (kurumsal ve etkinlik
+ağları sık engeller; `check-demo.sh` tüneli 530 ile raporlar). Quick tunnel 20-30 dakika sonra
+kendiliğinden kopabilir; koparsa `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --n8n --tunnel`.
 
-- Sahnedeki en etkileyici an: Telegram'a **Onayla / Reddet** düşer.
-- İnternet şart ve ağın **7844 portuna** (TCP/UDP) dışarı çıkışa izin vermesi gerekir; kurumsal ve etkinlik ağları bunu sık engeller (`check-demo.sh` tüneli 530 ile raporlar, `.demo-logs/tunnel.log`'da "Allow outbound TCP on port 7844" yazar). Böyle bir ağda tünel hiç açılmaz: Mod B'ye geç.
-- Tünel URL'i her başlatmada değişir; script halleder.
-- Butona **demo yapılan bilgisayardaki tarayıcıdan** bas (Telegram Web sekmesi açık olsun). Telefondan çalışmaz.
-
-### Mod A2 · Telegram, tünelsiz (aynı bilgisayardan onay)
-
-Telegram `localhost` adresli düğmeleri reddeder ama **IP adresli** düğmeleri kabul eder. `start-demo.sh`
-tünel yoksa n8n'i `WEBHOOK_URL=http://127.0.0.1:5678/` ile başlatır; 01'in Onayla / Reddet düğmeleri
-`127.0.0.1`'i gösterir ve **n8n'in çalıştığı bilgisayardaki** Telegram Web ya da Telegram Desktop'tan
-tıklanınca çalışır. Tünel, cloudflared, 7844 portu gerekmez; yalnızca Telegram API'ye (443) erişim yeter.
+### B · Form (internet gerekmez)
 
 ```zsh
-./scripts/start-demo.sh            # --tunnel OLMADAN; .env'de order-approval (01) kalsın
-./scripts/check-demo.sh            # "tünel yok, n8n taban adresi http://127.0.0.1:5678/" + uyarı
+./scripts/mode.sh form                # .env → order-approval-offline, CAP yeniden başlar
+./scripts/create-order.sh -a 15000
+./scripts/form-url.sh                 # bekleyen onay formunu tarayıcıda açar → Karar: Onayla, Onaylayan: adın
 ```
 
-- Sahnede Telegram mesajı ve düğmeler aynen görünür; tek fark düğmeye telefondan değil Mac'ten basılması.
-- Telefondan onay şartsa Mod A (tünel) gerekir.
-
-### Mod B · Form (tamamen lokal)
-
-```zsh
-# order-demo/.env içinde:
-N8N_WEBHOOK_URL=http://localhost:5678/webhook/order-approval-offline
-```
-
-n8n'de `04`'ü **Activate**, `01`'i **Deactivate** et, sonra:
-
-```zsh
-./scripts/stop-demo.sh && ./scripts/start-demo.sh     # --tunnel OLMADAN
-```
-
-- İnternet, tünel gerektirmez. En güvenli mod. İnternet varsa 04 yine de Telegram'a **bildirim** atar: sipariş özeti + onay formunun linki (`127.0.0.1`), düğme yok. Linke n8n'in çalıştığı bilgisayardaki Telegram Web'den tıklayınca form açılır; telefondan açılmaz.
-- n8n **mutlaka tünelsiz** başlamalı; tünelliyken form linki tünel adresini üretir, tünel kapanınca ölür.
-- Onay adresi: **`./scripts/form-url.sh`** bekleyen son formu bulup tarayıcıda açar (`--print` sadece yazar). Elle bulmak istersen çalışan execution'daki `Siparis Bilgileri` node'unun `onayFormUrl` alanı. Adresi elle kurma; n8n linke tek kullanımlık bir `?signature=` ekler.
-- Mod değiştirince **CAP'i de yeniden başlat** (`./scripts/stop-demo.sh --cap && ./scripts/start-demo.sh --cap`); `.env` yalnızca başlangıçta okunur.
-
-`check-demo.sh` hangi modda olduğunu ve o modun hazır olup olmadığını söyler.
-
-### Pinned data (üçüncü yol, yalnızca manuel çalıştırmada)
-
-İnternet varken workflow'u bir kez çalıştır → execution'da Telegram / LLM node'unun çıktısını
-**pin'le** → Save. Sonraki *Test workflow* çalıştırmalarında o node dış servise gitmez.
-Pin data production webhook çalıştırmalarında **devreye girmez**; tam otomatik offline akış
-için `04`'ü kullan.
+04 workflow'u, form beklemeye geçmeden önce Telegram'a **düz metin** bir bildirim de atar (özet + form
+linki, düğme yok); internet yoksa bu adım atlanır, form yine çalışır. n8n **tünelsiz** başlatılmalıdır;
+tünelliyken form linki tünel adresini üretir.
 
 ## 9. Ortam değişkenleri
 
@@ -425,199 +320,187 @@ Dosya: `order-demo/.env` (`.env.example`'dan kopyalanır, commit edilmez).
 
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
-| `N8N_WEBHOOK_URL` | `http://localhost:5678/webhook/order-approval` | CAP'in tetiklediği webhook. Form modu için `.../webhook/order-approval-offline`. n8n editöründe **Test workflow** ile denerken `/webhook/` yerine `/webhook-test/`. |
-| `N8N_WEBHOOK_KEY` | `sit-ankara-2026` | `X-API-Key` header'ı. n8n'deki "CAP Webhook Key" credential'ı ile aynı olmalı; `setup-mac.sh` senkron kurar. Demo anahtarıdır, üretimde değiştir. |
-| `N8N_WEBHOOK_TIMEOUT_MS` | `3000` | CAP'in n8n'i beklediği süre. Aşılırsa sipariş yine oluşur, uyarı loglanır. |
+| `N8N_WEBHOOK_URL` | `http://localhost:5678/webhook/order-approval` | CAP'in tetiklediği webhook. Form modu: `.../webhook/order-approval-offline`. Editörde **Test workflow** ile denerken `/webhook/` yerine `/webhook-test/` |
+| `N8N_WEBHOOK_KEY` | `sit-ankara-2026` | `X-API-Key` header'ı; n8n'deki "CAP Webhook Key" credential'ı ile aynı olmalı. Demo anahtarıdır |
+| `N8N_WEBHOOK_TIMEOUT_MS` | `3000` | CAP'in n8n'i beklediği süre. Aşılırsa sipariş yine oluşur |
 
-> **İsim çakışması uyarısı.** `N8N_WEBHOOK_URL` aynı zamanda n8n'in kendi yapılandırma değişkenidir
-> (`@n8n/config`, webhook taban adresi). Bu değişken kabukta **export** edilmiş hâldeyse iki şey bozulur:
-> n8n onu taban adres sanır ve form/buton linkleri `…/webhook/order-approval/form-waiting/…` gibi çıkar;
-> CAP de `.env`'i okuyamaz, çünkü `@sap/cds` mevcut ortam değişkenini `.env` ile ezmez. `start-demo.sh`
-> bu yüzden n8n'i başlatırken değişkeni unset edip `WEBHOOK_URL`'i açıkça verir, CAP'i başlatırken
-> `.env`'i `set -a` ile zorla yükler. Script dışından başlatıyorsan `unset N8N_WEBHOOK_URL` demeyi unutma.
+> **İsim çakışması.** `N8N_WEBHOOK_URL` aynı zamanda n8n'in kendi yapılandırma değişkenidir (webhook taban
+> adresi). Kabukta export edilmiş hâldeyse n8n onu taban adres sanır (form linkleri
+> `…/webhook/order-approval/form-waiting/…` olur) ve CAP `.env`'i okuyamaz (`@sap/cds` mevcut ortam
+> değişkenini `.env` ile ezmez). `start-demo.sh` bu yüzden n8n için değişkeni unset edip `WEBHOOK_URL`'i
+> açıkça verir, CAP'i `.env`'i `set -a` ile yükleyerek başlatır. Script dışından başlatıyorsan
+> `unset N8N_WEBHOOK_URL`.
 
 ## 10. Script'ler
 
-Hepsi zsh, hepsi repo kökünü kendi konumlarından bulur; herhangi bir dizinden çağrılabilirler.
-Ayrıntı: [scripts/README.md](scripts/README.md).
+Hepsi zsh, repo kökünü kendi konumlarından bulur, herhangi bir dizinden çağrılabilir. n8n veritabanına
+yazanlar (`setup-mac`, `set-chat-id`, `set-*-key`, `pick-gemini-model`, `publish-workflows`) **n8n
+kapalıyken** çalışır.
 
 | Script | Ne yapar |
 |---|---|
 | `setup-mac.sh [--force]` | Tek seferlik kurulum: npm install, `.env`, webhook credential'ı, 4 workflow import |
-| `start-demo.sh [--tunnel] [--bg] [--cap] [--n8n]` | n8n ve CAP'i başlatır. `--tunnel` cloudflared açar, `--bg` arka planda loglarla (`.demo-logs/`) |
-| `stop-demo.sh [--cap] [--n8n]` | Durdurur, 4004 / 5678 portlarını boşaltır |
-| `check-demo.sh [--full]` | Sahne öncesi kontrol; `--full` gerçek bir uçtan uca tur atar |
+| `start-demo.sh [--tunnel] [--bg] [--cap] [--n8n]` | n8n ve CAP'i başlatır (varsayılan iki Terminal penceresi; `--bg` arka plan, loglar `.demo-logs/`) |
+| `stop-demo.sh [--cap] [--n8n]` | Durdurur, portları boşaltır, tüneli kapatır |
+| `check-demo.sh [--full]` | Ön kontrol: araçlar, CAP, n8n, webhook + anahtar, onay kanalı; `--full` gerçek bir uçtan uca tur |
+| `mode.sh [telegram\|form]` | Onay kanalını değiştirir ve CAP'i yeniden başlatır; parametresiz mevcut modu gösterir |
 | `create-order.sh [-a tutar] [-c müşteri] [-p ürün] [-q adet]` | Test siparişi açar |
 | `watch-order.sh <ID> [saniye]` | Siparişi `PENDING`'den çıkana kadar izler |
-| `mode.sh [telegram\|form]` | Onay kanalını değiştirir ve CAP'i yeniden başlatır; parametresiz mevcut modu gösterir |
-| `form-url.sh [--print] [sipariş-id]` | Form modunda (04) onay bekleyen son siparişin onay formunu bulur ve tarayıcıda açar |
-| `agent-demo.sh [-c] [-p] [-q] [--fast]` | Perde 2'yi LLM'siz oynar: üç tool çağrısını elle, konuşma hızında |
-| `set-chat-id.sh <id>` | Telegram chat id'yi 01 ve 03'e yazar (repo JSON'ları + n8n DB) |
-| `set-gemini-key.sh <AIza...>` | Gemini anahtarını test eder, credential olarak kaydeder, 02'ye bağlar |
-| `set-groq-key.sh <gsk_...>` | Agent'ı Groq üzerindeki açık kaynak Llama 3.3 70B'ye geçirir ve yayınlar (ücretsiz, yüksek kota) |
+| `form-url.sh [--print] [sipariş-id]` | Form modunda bekleyen son onay formunu bulur ve açar |
+| `agent-demo.sh [-c] [-p] [-q] [--fast]` | Perde 2'yi LLM'siz oynar: üç tool çağrısını elle |
+| `set-chat-id.sh <id>` | Telegram chat id'yi 01, 03 ve 04'e yazar (repo JSON'ları + n8n) |
+| `set-groq-key.sh <gsk_...> [--model id] [--list]` | Agent'ı Groq üzerindeki açık kaynak modele geçirir, yayınlar |
+| `set-gemini-key.sh <AIza...>` | Gemini anahtarını kaydeder, 02'ye bağlar |
 | `pick-gemini-model.sh [--list] [model]` | Anahtarın tool calling yapabildiği bir Gemini modeli bulup 02'ye yazar |
 | `publish-workflows.sh [--check]` | Taslakları yayınlar, 01/02/04'ü aktif eder |
-| `windows/*.ps1` | Eski PowerShell sürümleri; bakımı yapılmıyor |
-
-n8n veritabanına dokunan script'ler (`setup-mac`, `set-chat-id`, `set-gemini-key`,
-`pick-gemini-model`, `publish-workflows`) **n8n kapalıyken** çalıştırılmalıdır.
 
 ## 11. Workflow'lar
 
-Node node anlatım ve import seçenekleri: [n8n-workflows/README.md](n8n-workflows/README.md).
+Dört workflow, n8n 2.x export formatında. Credential id'leri (`REPLACE_WITH_YOUR_CREDENTIAL_ID`) ve
+`<CHAT_ID>` bilerek yer tutucudur; `setup-mac.sh` webhook credential'ını bağlar, gerisini § 6.2 yapar.
+Elle import ediyorsan (Workflows → Import from File) `CAP Webhook Key` adlı bir Header Auth credential'ı
+(Name `X-API-Key`, Value `.env`'deki anahtar) oluşturup webhook node'larında seç; her workflow'un
+Settings → Error workflow alanında `03`'ü seç.
 
-| Dosya | Tetikleyici | Ne yapar |
-|---|---|---|
-| `01-order-approval.json` | Webhook `/webhook/order-approval` (Header Auth) | IF tutar > 10.000 → Telegram send-and-wait → `approve` / `reject`; değilse `approve(auto-rule)` |
-| `02-order-agent.json` | Chat Trigger | AI Agent (Gemini, Simple Memory) + 3 HTTP Request Tool: `listProducts`, `getCustomer`, `createOrder` |
-| `03-error-handler.json` | Error Trigger | 01, 02 ve 04 hata verirse Telegram'a bildirim. Üç workflow'un `settings.errorWorkflow` alanı `demo03`'ü gösterir; `setup-mac.sh` sabit kimliklerle import ettiği için bağlantı korunur |
-| `04-order-approval-OFFLINE.json` | Webhook `/webhook/order-approval-offline` | 01'in aynısı, Telegram yerine n8n **Form** ile onay; internetsiz çalışır |
+### 01 · Order Approval (Telegram)
 
-Değiştirmek istediğin kural **onay eşiği (10.000)** ise CAP'te değil, `01` ve `04`'teki
-`Tutar > 10.000 mu?` node'undadır. Bilinçli bir tasarım: iş kuralı orkestrasyon katmanında,
-SAP servisi veri ve doğrulama yapıyor.
+| Node | Ne yapar |
+|---|---|
+| `CAP Webhook` | `POST /webhook/order-approval`, Header Auth. Anahtar uyuşmazsa 403 |
+| `Siparis Bilgileri` | Gövdeyi okunaklı alanlara açar |
+| `Tutar > 10.000 mu?` | **Onay eşiği burada.** Değiştirmek için bu node'u düzenle, CAP'e dokunma |
+| `Telegram Onay Iste` | send-and-wait: özet + Onayla / Reddet. Execution `waiting`; saatlerce bekleyebilir |
+| `Onaylandi mi?` | `data.approved` dalını ayırır |
+| `CAP approve (Telegram)` | `POST /approve {ID, approvedBy: "Telegram"}` |
+| `Ret Sebebi Sor` | send-and-wait, serbest metin. **Limit Wait Time 2 dk:** cevap gelmezse varsayılan gerekçeyle devam |
+| `CAP reject (Telegram)` | `POST /reject {ID, reason}` |
+| `CAP approve (auto-rule)` | Eşiğin altı: `{ID, approvedBy: "auto-rule"}` |
+
+### 02 · Order Agent (Chat)
+
+| Node | Ne yapar |
+|---|---|
+| `Chat Trigger` | Public mod; editör Chat paneli, `chat.html` ve n8n'in kendi sayfası buraya gelir |
+| `Siparis Agent` | System prompt: asla tahmin etme; sırayla ürünü, müşteriyi doğrula, sonra sipariş aç. Onay tool'u **yok** |
+| `Chat Model` | Repoda Groq `openai/gpt-oss-120b`, temperature 0, Retry On Fail. `set-gemini-key.sh` ile Gemini'ye çevrilebilir |
+| `Simple Memory` | Aynı sohbet içinde bağlam |
+| `listProducts` | `GET /Products?$filter=contains(name,'…')` — "sipariş oluşturmadan ÖNCE MUTLAKA bu tool'u kullan" |
+| `getCustomer` | `GET /Customers?$filter=contains(name,'…')` — "boş liste dönerse müşteri KAYITLI DEĞİLDİR" |
+| `createOrder` | `POST /Orders` — "bu tool veri yazar, sadece doğruladıktan SONRA çağır". `amount` göndermez, CAP hesaplar |
+
+### 03 · Error Handler
+
+`Error Trigger → Telegram`. 01, 02 ve 04'ün `settings.errorWorkflow` alanı `demo03`'ü gösterir; bir
+execution hata verirse workflow adı, node, hata mesajı ve execution numarası Telegram'a gider.
+
+### 04 · Order Approval (OFFLINE / Form)
+
+01 ile aynı iskelet; Telegram send-and-wait yerine **Wait → Resume on form submission**.
+`Siparis Bilgileri` node'u `onayFormUrl` (= `$execution.resumeFormUrl`) üretir; `Telegram Bildir`
+özet + bu linki düz metin olarak gönderir (`onError: continue`, internet yoksa atlanır); `Form ile Onay
+Bekle` formu bekler (alanlar: Karar = Onayla / Reddet, Onaylayan); `CAP approve (Form)` onaylayan adını
+yazar. Form adresini elle kurma: n8n linke tek kullanımlık bir imza ekler, `form-url.sh` hazır verir.
 
 ## 12. CAP servisi
 
-Kök: `http://localhost:4004/odata/v4/order`. Tam anlatım: [order-demo/MIMARI.md](order-demo/MIMARI.md).
+Üç katman: **db** (veri) → **srv** (servis + iş mantığı) → **app** (UI). Kök: `http://localhost:4004/odata/v4/order`.
+
+### Veri modeli (`db/schema.cds`)
+
+| Entity | Alanlar |
+|---|---|
+| `Orders` (`managed`) | `ID` UUID · `customer`, `product` String(100) · `qty` Integer · `amount` Decimal(15,2) · `currency` (varsayılan `TRY`) · `status` `PENDING`\|`APPROVED`\|`REJECTED` · `approvedBy` · `approvedAt` · `note` · `createdAt`, `modifiedAt`… |
+| `Customers` | `ID` (`C001`…), `name`, `city` — 4 kayıt |
+| `Products` | `ID` (`P001`…), `name`, `unitPrice` — 6 kayıt |
+
+`customer` ve `product` bilerek düz metindir; agent'ın ürünü **isimle** doğrulaması anlatılır. Projeksiyon
+ayrıca hesaplanan `statusCriticality` alanını döner (APPROVED 3, PENDING 2, REJECTED 1); Fiori'deki renkli
+durum sütununu bu sürer.
+
+**Fiyatlar** `db/data/order.demo-Products.csv` içindedir (Filtre Kartuşu 375, Çelik Vana 1.250, Hidrolik
+Hortum 480, Debimetre 2.750, Conta Seti 95, Manometre 640). Veritabanı **in-memory SQLite**: `cds watch`
+her başladığında CSV'ler yeniden yüklenir, liste 3 siparişe döner. Fiyat değiştirmek ya da ürün eklemek
+için CSV'ye satır ekle, CAP'i yeniden başlat. Eşik üstü hazır kombinasyon: **40 × 375 = 15.000**.
+
+### Servis davranışı (`srv/order-service.js`)
+
+- **before CREATE:** `currency` boşsa `TRY`, `status` boşsa `PENDING`; `amount` yoksa `qty × unitPrice`
+  (ürün adıyla `Products`'tan), ürün yoksa **400**. Müşteri doğrulanmaz; bu bilinçli, agent'ın müşteri
+  koruması prompt'tadır.
+- **after CREATE:** `req.on('succeeded')` içinde `N8N_WEBHOOK_URL`'e `POST`, `X-API-Key` header'ı ile,
+  fire-and-forget. n8n kapalıysa `warn` loglanır, sipariş yine `201`.
+- **approve / reject:** `status`, `approvedBy`, `approvedAt` günceller. Zaten hedef durumdaysa mevcut kaydı
+  `200` ile döner (idempotent); başka nihai duruma geçiş `409`; ID yoksa `400`, sipariş yoksa `404`.
+  `reject(ID, reason)` imzası gereği `approvedBy = n8n` yazılır, kimin reddettiği `reason` ile `note`
+  alanına düşer.
+
+### Uçlar
 
 | Uç | Metod | Ne döner |
 |---|---|---|
 | `/Orders` | GET · POST | Siparişler; POST yeni sipariş |
-| `/Orders(<uuid>)` | GET | Tek sipariş (OData V4 söz dizimi, `guid'...'` yok) |
+| `/Orders(<uuid>)` | GET | Tek sipariş (OData V4 söz dizimi; `guid'...'` **400**) |
 | `/Products`, `/Customers` | GET | Salt okunur ana veri |
-| `/approve` | POST `{ID, approvedBy}` | Onaylar; idempotent |
-| `/reject` | POST `{ID, reason}` | Reddeder; sebep `note` alanına yazılır; idempotent |
+| `/approve` | POST `{ID, approvedBy}` | Onaylar |
+| `/reject` | POST `{ID, reason}` | Reddeder |
 | `/$metadata` | GET | EDMX |
 
-`Orders` entity'si `managed` aspect'i taşır; `createdAt` alanı sayesinde hem `localhost:4004` formu
-hem Fiori listesi (`UI.PresentationVariant`) siparişleri **yeniden eskiye** sıralar. OData'nın varsayılan
-sırası UUID'ye göredir, bu yüzden listeleri `createdAt` olmadan sıralamaya çalışma.
+Listeler `createdAt`'e göre **yeniden eskiye** sıralıdır: `app/index.html` `$orderby=createdAt desc&$top=8`,
+Fiori `UI.PresentationVariant`. OData'nın varsayılan sırası UUID'ye göredir, buna güvenme.
 
-Veritabanı **in-memory SQLite**: `cds watch` her başladığında CSV'ler yeniden yüklenir, liste
-3 siparişe döner. Demo tekrar tekrar aynı temiz durumdan oynanabilir. Fiyat değiştirmek ya da
-ürün eklemek için `db/data/order.demo-Products.csv`'ye satır ekleyip CAP'i yeniden başlat.
+Açılışta görünen `custom action 'reject()' conflicts with method in base class` uyarısı zararsızdır.
 
 ## 13. Sorun giderme
 
 | Belirti | Sebep | Çözüm |
 |---|---|---|
-| Webhook **404**, CAP logunda `webhook failed` | Workflow aktif değil | n8n'de workflow → **Activate**. `check-demo.sh` bunu yakalar. |
-| Webhook **403** | `X-API-Key` uyuşmuyor | `.env`'deki `N8N_WEBHOOK_KEY` ile n8n'deki Header Auth credential Value'su aynı olmalı. `setup-mac.sh` yeniden çalıştırınca senkronlar. |
-| `Credential with ID "REPLACE_WITH_..." does not exist` | § 6.2-b atlanmış | Node'u aç, kendi credential'ını seç |
-| `Credential with ID ... does not exist` (credential seçili olduğu hâlde) | Yayınlanan sürüm eski | `./scripts/stop-demo.sh --n8n && ./scripts/publish-workflows.sh` |
-| n8n'de yaptığın değişiklik çalışmıyor | Taslak kaydedildi, yayınlanmadı | Active anahtarını kapat/aç ya da `publish-workflows.sh` |
-| Reddet'e bastım, sipariş PENDING kaldı | Bot gerekçe formunu bekliyor | Telegram'daki **Gerekce Yaz** düğmesiyle formu doldur, ya da 2 dakika bekle; varsayılan gerekçeyle reddedilir |
-| Telegram `chat not found` | Bot seninle hiç konuşmamış | Bota önce sen mesaj at, sonra chat id'yi doğrula |
-| Telegram `inline keyboard button URL ... Wrong HTTP URL` | n8n localhost'ta, tünel yok | `./scripts/start-demo.sh --tunnel` |
-| Onay butonu bir şey açmıyor | Link bu makinedeki n8n'e gidiyor | Aynı bilgisayardaki tarayıcıdan tıkla (Telegram Web / Desktop) |
-| Telegram mesajı hiç gitmiyor | Tünel kapanmış | `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --tunnel --n8n` |
-| Chat: **Failed to receive response**, n8n'de execution yok | n8n'in chat sayfası ve editör, mesajı tünel adresine gönderir; tünel kopmuş ya da sekme eski | `http://localhost:4004/chat.html` kullan. Tünel için `check-demo.sh`; kopmuşsa n8n'i `--tunnel` ile yeniden başlat, editör sekmesini yenile |
-| Chat: **Error in workflow**, 1-2 sn içinde | Gemini 429: günlük 20 istek kotası dolmuş (ya da dakikalık sınır) | n8n → Executions'ta hatayı oku. Günlükse ertesi gün ~10:00'a kadar bekle, ikinci bir ücretsiz anahtar kullan ya da `agent-demo.sh` ile oyna |
-| Tünel hiç açılmıyor, `check-demo` 530 diyor, logda "Allow outbound TCP on port 7844" | Ağ 7844 portunu engelliyor (kurumsal / etkinlik WiFi) | Bu ağda Cloudflare tüneli çalışmaz. **Mod A2:** n8n'i tünelsiz başlat, düğmeler `127.0.0.1`'e gider, Mac'teki Telegram Web'den tıkla. İnternet de yoksa Mod B (form) |
-| Mod değiştirdim ama CAP hâlâ eski workflow'a gidiyor; form linki `/webhook/order-approval/` içeriyor | Kabukta export edilmiş `N8N_WEBHOOK_URL` `.env`'i eziyor ve n8n'in taban adresini bozuyor | `unset N8N_WEBHOOK_URL` ve `start-demo.sh` ile yeniden başlat (script bunu kendisi de yapar). Ayrıntı: § 9 |
-| Tünel 20-30 dakika sonra kendiliğinden kopuyor | Cloudflare quick tunnel kalıcı değildir | Perde 2'den hemen önce `./scripts/check-demo.sh` çalıştır; kopmuşsa n8n'i `--tunnel` ile yeniden başlat. Yerel chat sayfası tünelden etkilenmez |
-| Form: **Invalid Form Link** | URL elle kurulmuş | `onayFormUrl` alanındaki hazır adresi kullan |
-| Form linki `trycloudflare.com`'a gidiyor | n8n tünelli başlatılmış | Form modunda n8n'i tünelsiz başlat |
-| Gemini `no longer available to new users` / model 404 | Google model kimliğini kapatmış | `./scripts/pick-gemini-model.sh` |
-| Gemini kota / yetki hatası | Ücretsiz kota dolmuş ya da anahtar yanlış | Yeni anahtar al, ya da Perde 2'yi `agent-demo.sh` ile oyna |
-| Agent ürün/müşteri uydurdu | Model tool'u atladı | `Chat Model` → **Temperature = 0** (paket 0 ile gelir) |
-| `⌘S` workflow'u kaydetmiyor | Tarayıcı kısayolu yutuyor | Node panelini kapat, canvas'ın sağ üstündeki **Save**'e tıkla |
-| `command not found: n8n` / `cds` | nvm PATH'i yeni kabukta yok | Yeni Terminal aç ya da script'leri kullan |
+| Webhook **404**, CAP logunda `webhook failed` | Workflow aktif değil | n8n'de **Activate**. `check-demo.sh` bunu yakalar |
+| Webhook **403** | `X-API-Key` uyuşmuyor | `.env`'deki `N8N_WEBHOOK_KEY` ile n8n'deki credential Value'su aynı olmalı; `setup-mac.sh` senkronlar |
+| `Credential with ID "REPLACE_WITH_..." does not exist` | § 6.2-a atlanmış | Node'u aç, credential'ı seç |
+| `Credential ... does not exist` (credential seçili) / değişiklik çalışmıyor | Yayınlanan sürüm eski | Active kapat/aç ya da `./scripts/publish-workflows.sh` (n8n kapalıyken) |
+| Telegram `chat not found` | Bot seninle hiç konuşmamış | Bota önce sen mesaj at, chat id'yi doğrula |
+| Telegram: `inline keyboard button URL ... is invalid` | n8n taban adresi `localhost` | `start-demo.sh` ile başlat (taban `127.0.0.1`) ya da `--tunnel` |
+| Onay düğmesi bir şey açmıyor | Düğme `127.0.0.1`'e gidiyor | n8n'in çalıştığı bilgisayardaki Telegram Web/Desktop'tan tıkla; telefondan onay için `--tunnel` |
+| Reddet'e bastım, sipariş PENDING kaldı | Gerekçe formu bekleniyor | **Gerekce Yaz** ile formu doldur ya da 2 dk bekle |
+| Tünel 530 / açılmıyor, logda "Allow outbound TCP on port 7844" | Ağ 7844'ü engelliyor | Tünelsiz Telegram (§ 8-A) ya da Form modu |
+| Mod değiştirdim ama CAP eski workflow'a gidiyor; form linki `/webhook/order-approval/` içeriyor | Kabukta export edilmiş `N8N_WEBHOOK_URL` | `unset N8N_WEBHOOK_URL`, script'lerle yeniden başlat (§ 9) |
+| Chat: **Error in workflow**, 1-3 sn içinde | LLM 429 (kota) ya da 503 (yoğunluk) | n8n → Executions'ta hatayı oku. Gemini'de günlük 20 istek / model; Groq'a geç (`set-groq-key.sh`) ya da `agent-demo.sh` |
+| Chat: **Failed to receive response**, execution yok | Sekme eski ya da tünel kopmuş | Sekmeyi yenile; `chat.html` kullan |
+| Agent ürün/müşteri uydurdu | Model tool'u atladı | `Chat Model` → Temperature 0 (paket 0 ile gelir) |
 | `port 4004 is already in use` | Önceki `cds watch` açık | `./scripts/stop-demo.sh` |
-| n8n açılmıyor, uzun sürüyor | İlk açılışta DB migration | Normal, 1-2 dk. `start-demo.sh` 120 sn bekler. |
-| Terminal penceresi açılmıyor | Otomasyon izni | Sistem Ayarları → Gizlilik ve Güvenlik → Otomasyon → Terminal'e izin ver. Ya da `--bg` |
-| Listede fazladan sipariş var | Prova siparişleri | CAP'i yeniden başlat; veritabanı in-memory |
-| Açılışta `custom action 'reject()' conflicts with method in base class` | CAP yalnızca `srv.reject()` kısayolunu üretmediğini söylüyor | Zararsız; `this.on('reject')` handler'ı normal çalışır |
-
-### Model / sağlayıcı değiştirme
-
-Agent Google Gemini ile kurulu (`Chat Model` node'u). Başka sağlayıcıya geçmek: `Chat Model`
-node'unu sil → **+** → istediğin Chat Model'i ekle → credential seç → agent'ın **Chat Model**
-portuna bağla. Agent, tool'lar, memory ve system prompt aynı kalır. Diğer ücretsiz seçenekler:
-**Groq** (hızlı, bedava kota), **Ollama** (tamamen lokal, internet gerekmez).
+| `command not found: n8n` / `cds` | nvm PATH'i yeni kabukta yok | Yeni Terminal aç ya da script'leri kullan |
+| Terminal penceresi açılmıyor | Otomasyon izni | Sistem Ayarları → Gizlilik ve Güvenlik → Otomasyon → Terminal; ya da `--bg` |
+| Listede fazladan sipariş var | Prova siparişleri | `./scripts/stop-demo.sh --cap && ./scripts/start-demo.sh --cap` |
 
 ## 14. Sık sorulan sorular
 
-**Bu üretimde çalışır mı?**
-Mimari evet, bu kurulum hayır. Burada in-memory SQLite ve lokal n8n var. Üretimde CAP BTP'ye
-(HANA Cloud, XSUAA), n8n kendi sunucunuza ya da BTP'deki yönetilen sürümüne gider; webhook'a
-OAuth2 / mTLS ve IP allowlist konur; geri yazma asenkron kuyruğa alınır. Desen aynı kalır.
+**Bu üretimde çalışır mı?** Mimari evet, bu kurulum hayır. Burada in-memory SQLite ve lokal n8n var.
+Üretimde CAP BTP'ye (HANA Cloud, XSUAA), n8n kendi sunucunuza ya da BTP'deki yönetilen sürümüne gider;
+webhook'a OAuth2 / mTLS ve IP allowlist konur; geri yazma asenkron kuyruğa alınır. Desen aynı kalır.
 
-**Neden SAP Build Process Automation ya da Integration Suite değil?**
-Onlar da geçerli. n8n'in avantajı SAP dışı yüzlerce entegrasyonu ve LLM / agent node'larını
-hazır getirmesi ve laptopta beş dakikada ayağa kalkması. Seçim, sürecin ağırlık merkezinin
-SAP'de mi dışarıda mı olduğuna bağlı. Destede slayt 8 bu üçünü yan yana koyuyor.
+**Neden SAP Build Process Automation ya da Integration Suite değil?** Onlar da geçerli. n8n'in avantajı
+SAP dışı yüzlerce entegrasyonu ve LLM / agent node'larını hazır getirmesi ve laptopta beş dakikada ayağa
+kalkması. Seçim, sürecin ağırlık merkezinin SAP'de mi dışarıda mı olduğuna bağlı.
 
-**Agent yanlış sipariş açarsa?**
-İki koruma var: agent ürünü ve müşteriyi doğrulamadan `createOrder` çağıramıyor (system prompt
-+ tool açıklamaları), CAP de bilinmeyen ürüne `400` dönüyor. Üstelik açtığı her sipariş
-`PENDING`; onay hâlâ kuralda ve insanda. n8n 2.6+ ile tek bir tool'un çalışması da insan
-onayına bağlanabiliyor.
+**Agent yanlış sipariş açarsa?** İki koruma: agent ürünü ve müşteriyi doğrulamadan `createOrder`
+çağıramıyor, CAP de bilinmeyen ürüne 400 dönüyor. Açtığı her sipariş `PENDING`; onay hâlâ kuralda ve
+insanda. n8n 2.6+ ile tek bir tool'un çalışması da insan onayına bağlanabiliyor.
 
-**Maliyet?**
-Yalnızca Perde 2'deki LLM çağrıları; Gemini Flash'ın ücretsiz katmanı demo için fazlasıyla
-yeterli. Perde 1'de model yok, deterministik kural.
-
-**Agent'ı canlı çalıştırabilir miydiniz?**
-Evet, `Chat Model` bağlı. Göstermek istenen şey modelin kendisi değil, **tool sınırları**;
-asıl mühendislik orada.
+**Maliyet?** Yalnızca Perde 2'deki LLM çağrıları; Groq ve Gemini'nin ücretsiz katmanları demo için yeter.
+Perde 1'de model yok, deterministik kural.
 
 ## 15. Üretime taşırken
-
-Destenin 10. slaydının özeti. Demo bilerek bunları atlar; üretimde atlanmaz.
 
 | Konu | Demoda | Üretimde |
 |---|---|---|
 | Kimlik doğrulama | Statik `X-API-Key`, CAP'te auth yok | Webhook'ta JWT / OAuth2, IP allowlist; CAP'te XSUAA, `approve`/`reject` için ayrı scope |
-| Geri yazma | Senkron HTTP, hemen | Asenkron (kuyruk / Event Mesh), retry ve idempotency anahtarı |
+| Geri yazma | Senkron HTTP | Asenkron (kuyruk / Event Mesh), retry ve idempotency anahtarı |
 | Veritabanı | In-memory SQLite | HANA Cloud; n8n için Postgres |
-| n8n işletimi | `npm i -g n8n`, SQLite | Sabit sürüm, Postgres, **encryption key yedeği**, queue mode; 2.0 kırıcı değişikliklerle geldi |
+| n8n işletimi | `npm i -g n8n`, SQLite | Sabit sürüm, Postgres, encryption key yedeği, queue mode |
 | Lisans | Community (fair-code) | Kurum içi self-host ücretsiz; servis olarak satılamaz. SSO, environments, secret store, SLA ücretli katmanda |
-| Destek | Yok | Bağımsız n8n'i SAP desteklemez. SAP'nin BTP içindeki n8n sürümü (Joule Studio içinde) SAP tarafından işletilir; GA kademeli, güncel durumu kontrol et |
 | Denetim | Executions ekranı | Execution verisini saklama politikası, log forwarding, PII maskeleme |
 
-Fiyatlar ve lisans ayrıntıları için <https://n8n.io/pricing> (deste Eylül 2026 değerlerini kullanır).
+## 16. Notlar
 
-## 16. Sunum destesi
-
-İki sürüm var:
-
-- **`sunum/SAP-n8n-Sunum.html`**: sahnede kullanılan 8 slaytlık tek dosyalık HTML deste. Tarayıcıda aç,
-  ok tuşlarıyla ilerle (`…html#3` gibi doğrudan slayt adresi de çalışır). Görseller ve yazı tipleri gömülü,
-  React'i unpkg CDN'den yüklediği için internet gerektirir. Akış: n8n nedir → nasıl çalışır → SAP
-  entegrasyonu → SAP × n8n ortaklığı → iki canlı senaryo → soru-cevap.
-- **`SUNUM.pptx`**: 11 slaytlık PowerPoint sürümü, her birinde konuşmacı notu. Yapı: **6 slayt → canlı
-  demo (~12 dk) → 5 slayt.** Deste demoyu anlatmaz, n8n'i bir SAP geliştiricisinin gözüyle anlatır.
-
-| # | Slayt |
-|---|---|
-| 1 | Açılış: tez cümlesi + zaman çizgisi |
-| 2 | Bir sipariş onayı için bugün kaç sisteme dokunuyoruz? Neden şimdi |
-| 3 | n8n nedir: canvas'ı olan bir Node.js süreci; ABAP çeviri tablosu (SICF, SLG1, SBWP…) |
-| 4 | Dört iş, hepsi aynı canvas'ta: entegrasyon, otomasyon, insan döngüde, AI agent |
-| 5 | Tek arayüz HTTP: SAP tutar, n8n orkestre eder; çağrı yönü, clean core, released API |
-| 6 | Şimdi canlı görelim, üç yere bakın |
-| — | **Canlı demo** |
-| 7 | Agent oluşturur. Onaylamaz. Korumalar |
-| 8 | Üç araç, üç yer: SBPA / Integration Suite / n8n; n8n artık BTP'de |
-| 9 | Belirsizliği çekirdek sürece sokmadan değer üretmek: bir SAP mimarının ilkeleri |
-| 10 | Bedava kısmı lisans, bedava olmayan kısmı işletmek |
-| 11 | Kapanış: karar SAP'de, kural n8n'de, dil agent'ta |
-
-Desteyi yeniden üretmek: [sunum/README.md](sunum/README.md). Sahne akışı: [sunum/SUNUM-NOTLARI.md](sunum/SUNUM-NOTLARI.md).
-
-## 17. Windows notu
-
-Paket macOS'ta doğrulandı. `scripts/windows/` altındaki `start-demo.ps1` ve `create-order.ps1`
-daha eski PowerShell sürümleridir; CAP ve n8n'i başlatır ve test siparişi açar, ama
-`setup-mac.sh` ile gelen credential / workflow import otomasyonu ve `--tunnel` desteği yoktur.
-Windows'ta workflow'ları n8n arayüzünden import edip "CAP Webhook Key" credential'ını elle
-oluşturman gerekir (bkz. [n8n-workflows/README.md](n8n-workflows/README.md)).
-
-## 18. Lisans ve katkı
-
-Müşteri ve ürün adları uydurma, Türkçe örnek verilerdir. Demo kodu eğitim amaçlıdır; üretime
-taşımadan önce [§ 15](#15-üretime-taşırken)'i oku.
-
-Soru, düzeltme ve öneriler için issue açabilirsin.
+Müşteri ve ürün adları uydurma örnek verilerdir. Demo kodu eğitim amaçlıdır; üretime taşımadan önce
+§ 15'i oku. Soru, düzeltme ve öneriler için issue açabilirsin.
