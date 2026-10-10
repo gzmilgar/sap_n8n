@@ -3,8 +3,9 @@
 # olarak kaydeder, "Chat Model" node'unu Groq Chat Model'e çevirir (hem n8n'de hem repo JSON'unda) ve yayınlar.
 # Ücretsiz Groq katmanı: günde binlerce istek, 1-2 sn yanıt, tool calling destekli.
 #
-#   ./set-groq-key.sh gsk_...                      llama-3.3-70b-versatile ile
-#   ./set-groq-key.sh gsk_... --model <model-id>   başka bir Groq modeli
+#   ./set-groq-key.sh gsk_...                      hesapta mevcut, tool calling destekli ilk modeli seçer
+#   ./set-groq-key.sh gsk_... --model <model-id>   belirli bir Groq modeli
+#   ./set-groq-key.sh gsk_... --list               sadece hesaptaki modelleri listele
 #   ./set-groq-key.sh gsk_... --keep-repo          repo JSON'una dokunma, sadece n8n
 #
 # Anahtar: https://console.groq.com/keys  (ücretsiz hesap)
@@ -13,12 +14,13 @@
 set -euo pipefail
 source "${0:A:h}/lib-demo.sh"
 
-KEY="${1:-}"; MODEL="llama-3.3-70b-versatile"; KEEP_REPO=0
+KEY="${1:-}"; MODEL=""; KEEP_REPO=0; LIST_ONLY=0
 shift || true
 while (( $# )); do
   case "$1" in
     --model) MODEL="$2"; shift 2 ;;
     --keep-repo) KEEP_REPO=1; shift ;;
+    --list) LIST_ONLY=1; shift ;;
     *) bad "bilinmeyen seçenek: $1"; exit 1 ;;
   esac
 done
@@ -30,17 +32,38 @@ CRED_ID="groqkey01"; CRED_NAME="Groq account"
 
 head1 "1 · Anahtar test ediliyor"
 RESP=$(curl -s --max-time 20 https://api.groq.com/openai/v1/models -H "Authorization: Bearer $KEY" || true)
+# Tercih sırası: Groq'ta tool calling destekleyen sohbet modelleri. Katalog sık değişir; hesapta
+# hangisi varsa ilk eşleşen seçilir. Whisper / TTS / guard / vision / compound modelleri atlanır.
 RES=$(print -r -- "$RESP" | python3 -c "
 import json, sys
+want = '$MODEL'
+pref = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b',
+        'meta-llama/llama-4-maverick-17b-128e-instruct', 'meta-llama/llama-4-scout-17b-16e-instruct',
+        'qwen/qwen3-32b', 'moonshotai/kimi-k2-instruct-0905', 'moonshotai/kimi-k2-instruct',
+        'llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'llama3-70b-8192', 'llama3-8b-8192',
+        'mixtral-8x7b-32768', 'gemma2-9b-it']
+skip = ('whisper', 'tts', 'guard', 'vision', 'compound', 'safeguard', 'allam', 'embed')
 try: d = json.load(sys.stdin)
 except Exception: print('PARSE'); raise SystemExit
 if 'error' in d: print('ERR|' + str(d['error'].get('message', ''))[:160]); raise SystemExit
-ids = [m['id'] for m in d.get('data', [])]
-print('OK|%d|%s' % (len(ids), 'yes' if '$MODEL' in ids else 'no'))
+ids = sorted(m['id'] for m in d.get('data', []))
+chat = [i for i in ids if not any(k in i.lower() for k in skip)]
+if want:
+    chosen = want if want in ids else ''
+else:
+    chosen = next((p for p in pref if p in ids), '') or next((i for i in chat if 'llama' in i or 'gpt-oss' in i or 'qwen' in i), '') or (chat[0] if chat else '')
+print('OK|%d|%s|%s' % (len(ids), chosen, ','.join(ids)))
 ")
 case "$RES" in
-  OK\|*) COUNT="${${RES#OK|}%%|*}"; HAS="${RES##*|}"; ok "Anahtar geçerli - $COUNT model erişilebilir"
-         if [[ "$HAS" == "yes" ]]; then ok "$MODEL kullanılabilir"; else bad "$MODEL bu hesapta yok; --model ile başka bir model ver"; exit 1; fi ;;
+  OK\|*)
+    parts=("${(@s:|:)RES}"); COUNT="${parts[2]}"; CHOSEN="${parts[3]}"; ALL="${parts[4]}"
+    ok "Anahtar geçerli - $COUNT model erişilebilir"
+    info "hesaptaki modeller: ${ALL//,/  }"
+    if (( LIST_ONLY )); then exit 0; fi
+    if [[ -z "$CHOSEN" ]]; then
+      bad "${MODEL:-tercih listesindeki modellerden hiçbiri} bu hesapta yok; --model ile yukarıdaki listeden birini ver"; exit 1
+    fi
+    MODEL="$CHOSEN"; ok "model: $MODEL" ;;
   ERR\|*) bad "Groq anahtarı reddetti: ${RES#ERR|}"; exit 1 ;;
   *)      bad "Groq'a ulaşılamadı (internet?)"; exit 1 ;;
 esac
