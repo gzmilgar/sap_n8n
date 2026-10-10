@@ -36,26 +36,26 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-flash-latest",
+        "model": "openai/gpt-oss-120b",
         "options": {
           "temperature": 0
         }
       },
       "id": "b2000000-0000-4000-8000-000000000003",
       "name": "Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.1,
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
       "position": [
         -60,
         540
       ],
       "credentials": {
-        "googlePalmApi": {
+        "groqApi": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
-          "name": "Google Gemini account"
+          "name": "Groq account"
         }
       },
-      "notes": "503/429 gibi gecici hatalarda 5 deneme, 5 sn arayla (Retry On Fail).",
+      "notes": "Groq uzerinde acik kaynak model (openai/gpt-oss-120b). Retry On Fail acik. Gemini'ye donmek: set-gemini-key.sh",
       "retryOnFail": true,
       "maxTries": 5,
       "waitBetweenTries": 5000

@@ -41,7 +41,7 @@ Mod değişimi CAP'i yeniden başlatır (~10 sn), liste 3 satıra döner. n8n'e 
 
 | Yol | Nasıl |
 |---|---|
-| Canlı (kota: bugün ~8 istek kaldı, tur başına 3-4) | `chat.html` → `Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç` → 3-15 sn → sipariş eşik üstü → Perde 1b kanalına düşer |
+| Canlı (Groq · `openai/gpt-oss-120b`, açık kaynak; kota derdi yok, 1-3 sn) | `chat.html` → `Anadolu Makina'ya 40 kutu Endüstriyel Filtre Kartuşu siparişi aç` → 3-15 sn → sipariş eşik üstü → Perde 1b kanalına düşer |
 | Koruma | `Toros Kimya'ya 3 adet Süper Filtre 9000 siparişi aç` → "bulunamadı", sipariş yok |
 | LLM'siz yedek | `./scripts/agent-demo.sh` · `-p "Olmayan Urun"` · `-c "Yok Boyle Firma"` |
 

@@ -24,4 +24,4 @@ Mod: `./scripts/mode.sh` → TELEGRAM (01). Temiz liste: `./scripts/stop-demo.sh
 
 LLM'siz yedek (9-11 yerine): `./scripts/agent-demo.sh` · `-p "Olmayan Urun"` · `-c "Yok Boyle Firma"`
 
-Sahneler arası: Telegram düğmesine **Mac'teki** Telegram Web'den basılır. Chat istemleri arasında 30-60 sn bırak (ücretsiz LLM katmanı).
+Sahneler arası: Telegram düğmesine **Mac'teki** Telegram Web'den basılır. Agent Groq üzerinde `openai/gpt-oss-120b` ile çalışır (1-3 sn, kota sınırı yok); Gemini'ye dönülürse istemler arasında 30-60 sn bırak.
