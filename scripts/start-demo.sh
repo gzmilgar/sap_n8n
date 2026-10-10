@@ -93,7 +93,7 @@ if (( WANT_TUNNEL )); then
   done
   if [[ -z "$PUBLIC_URL" ]]; then
     bad "Tünel açılamadı - log: $LOG_DIR/tunnel.log"
-    info "İnternet yoksa form moduna geç (04). Ayrıntı: README.md, 'Onay kanalları' bölümü"
+    info "İnternet yoksa form moduna geç (04). Ayrıntı: README.md 'Approval channels' / README.tr.md 'Onay kanalları'"
     exit 1
   fi
   print -r -- "$PUBLIC_URL" > "$TUNNEL_URL_FILE"
