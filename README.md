@@ -369,7 +369,8 @@ brew install cloudflared            # bir kerelik, hesap gerektirmez
 `.env` → `N8N_WEBHOOK_URL=http://localhost:5678/webhook/order-approval`
 
 - Sahnedeki en etkileyici an: Telegram'a **Onayla / Reddet** düşer.
-- İnternet şart. Tünel URL'i her başlatmada değişir; script halleder.
+- İnternet şart ve ağın **7844 portuna** (TCP/UDP) dışarı çıkışa izin vermesi gerekir; kurumsal ve etkinlik ağları bunu sık engeller (`check-demo.sh` tüneli 530 ile raporlar, `.demo-logs/tunnel.log`'da "Allow outbound TCP on port 7844" yazar). Böyle bir ağda tünel hiç açılmaz: Mod B'ye geç.
+- Tünel URL'i her başlatmada değişir; script halleder.
 - Butona **demo yapılan bilgisayardaki tarayıcıdan** bas (Telegram Web sekmesi açık olsun). Telefondan çalışmaz.
 
 ### Mod B · Form (tamamen lokal)
@@ -387,7 +388,8 @@ n8n'de `04`'ü **Activate**, `01`'i **Deactivate** et, sonra:
 
 - İnternet, tünel, Telegram gerektirmez. En güvenli mod.
 - n8n **mutlaka tünelsiz** başlamalı; tünelliyken form linki tünel adresini üretir, tünel kapanınca ölür.
-- Onay adresi: çalışan execution'daki `Siparis Bilgileri` node'unun **`onayFormUrl`** alanı. Adresi elle kurma; n8n linke tek kullanımlık bir `?signature=` ekler, `onayFormUrl` bunu hazır verir.
+- Onay adresi: **`./scripts/form-url.sh`** bekleyen son formu bulup tarayıcıda açar (`--print` sadece yazar). Elle bulmak istersen çalışan execution'daki `Siparis Bilgileri` node'unun `onayFormUrl` alanı. Adresi elle kurma; n8n linke tek kullanımlık bir `?signature=` ekler.
+- Mod değiştirince **CAP'i de yeniden başlat** (`./scripts/stop-demo.sh --cap && ./scripts/start-demo.sh --cap`); `.env` yalnızca başlangıçta okunur.
 
 `check-demo.sh` hangi modda olduğunu ve o modun hazır olup olmadığını söyler.
 
@@ -408,6 +410,13 @@ Dosya: `order-demo/.env` (`.env.example`'dan kopyalanır, commit edilmez).
 | `N8N_WEBHOOK_KEY` | `sit-ankara-2026` | `X-API-Key` header'ı. n8n'deki "CAP Webhook Key" credential'ı ile aynı olmalı; `setup-mac.sh` senkron kurar. Demo anahtarıdır, üretimde değiştir. |
 | `N8N_WEBHOOK_TIMEOUT_MS` | `3000` | CAP'in n8n'i beklediği süre. Aşılırsa sipariş yine oluşur, uyarı loglanır. |
 
+> **İsim çakışması uyarısı.** `N8N_WEBHOOK_URL` aynı zamanda n8n'in kendi yapılandırma değişkenidir
+> (`@n8n/config`, webhook taban adresi). Bu değişken kabukta **export** edilmiş hâldeyse iki şey bozulur:
+> n8n onu taban adres sanır ve form/buton linkleri `…/webhook/order-approval/form-waiting/…` gibi çıkar;
+> CAP de `.env`'i okuyamaz, çünkü `@sap/cds` mevcut ortam değişkenini `.env` ile ezmez. `start-demo.sh`
+> bu yüzden n8n'i başlatırken değişkeni unset edip `WEBHOOK_URL`'i açıkça verir, CAP'i başlatırken
+> `.env`'i `set -a` ile zorla yükler. Script dışından başlatıyorsan `unset N8N_WEBHOOK_URL` demeyi unutma.
+
 ## 10. Script'ler
 
 Hepsi zsh, hepsi repo kökünü kendi konumlarından bulur; herhangi bir dizinden çağrılabilirler.
@@ -421,6 +430,7 @@ Ayrıntı: [scripts/README.md](scripts/README.md).
 | `check-demo.sh [--full]` | Sahne öncesi kontrol; `--full` gerçek bir uçtan uca tur atar |
 | `create-order.sh [-a tutar] [-c müşteri] [-p ürün] [-q adet]` | Test siparişi açar |
 | `watch-order.sh <ID> [saniye]` | Siparişi `PENDING`'den çıkana kadar izler |
+| `form-url.sh [--print] [sipariş-id]` | Form modunda (04) onay bekleyen son siparişin onay formunu bulur ve tarayıcıda açar |
 | `agent-demo.sh [-c] [-p] [-q] [--fast]` | Perde 2'yi LLM'siz oynar: üç tool çağrısını elle, konuşma hızında |
 | `set-chat-id.sh <id>` | Telegram chat id'yi 01 ve 03'e yazar (repo JSON'ları + n8n DB) |
 | `set-gemini-key.sh <AIza...>` | Gemini anahtarını test eder, credential olarak kaydeder, 02'ye bağlar |
@@ -483,6 +493,8 @@ Veritabanı **in-memory SQLite**: `cds watch` her başladığında CSV'ler yenid
 | Telegram mesajı hiç gitmiyor | Tünel kapanmış | `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --tunnel --n8n` |
 | Chat: **Failed to receive response**, n8n'de execution yok | n8n'in chat sayfası ve editör, mesajı tünel adresine gönderir; tünel kopmuş ya da sekme eski | `http://localhost:4004/chat.html` kullan. Tünel için `check-demo.sh`; kopmuşsa n8n'i `--tunnel` ile yeniden başlat, editör sekmesini yenile |
 | Chat: **Error in workflow**, 1-2 sn içinde | Gemini 429: günlük 20 istek kotası dolmuş (ya da dakikalık sınır) | n8n → Executions'ta hatayı oku. Günlükse ertesi gün ~10:00'a kadar bekle, ikinci bir ücretsiz anahtar kullan ya da `agent-demo.sh` ile oyna |
+| Tünel hiç açılmıyor, `check-demo` 530 diyor, logda "Allow outbound TCP on port 7844" | Ağ 7844 portunu engelliyor (kurumsal / etkinlik WiFi) | Bu ağda Cloudflare tüneli çalışmaz. Mod B'ye geç: `.env` → `order-approval-offline`, n8n'i **tünelsiz**, CAP'i yeniden başlat, onayı `./scripts/form-url.sh` ile ver |
+| Mod değiştirdim ama CAP hâlâ eski workflow'a gidiyor; form linki `/webhook/order-approval/` içeriyor | Kabukta export edilmiş `N8N_WEBHOOK_URL` `.env`'i eziyor ve n8n'in taban adresini bozuyor | `unset N8N_WEBHOOK_URL` ve `start-demo.sh` ile yeniden başlat (script bunu kendisi de yapar). Ayrıntı: § 9 |
 | Tünel 20-30 dakika sonra kendiliğinden kopuyor | Cloudflare quick tunnel kalıcı değildir | Perde 2'den hemen önce `./scripts/check-demo.sh` çalıştır; kopmuşsa n8n'i `--tunnel` ile yeniden başlat. Yerel chat sayfası tünelden etkilenmez |
 | Form: **Invalid Form Link** | URL elle kurulmuş | `onayFormUrl` alanındaki hazır adresi kullan |
 | Form linki `trycloudflare.com`'a gidiyor | n8n tünelli başlatılmış | Form modunda n8n'i tünelsiz başlat |

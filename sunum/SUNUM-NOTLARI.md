@@ -20,12 +20,15 @@ cd ~/sap_n8n
 > hemen önce `./scripts/check-demo.sh` çalıştır; "tünel yanıt vermiyor" derse n8n'i `--tunnel` ile
 > yeniden başlat (1 dakika).
 
-**Form modunda** (internet yok / riskli):
+**Form modunda** (internet yok, 7844 kapalı ya da riskli):
 ```zsh
-# order-demo/.env -> N8N_WEBHOOK_URL=.../webhook/order-approval-offline
+# order-demo/.env -> N8N_WEBHOOK_URL=http://localhost:5678/webhook/order-approval-offline
 ./scripts/start-demo.sh          # --tunnel OLMADAN
-./scripts/check-demo.sh --full
+./scripts/check-demo.sh --full   # "FORM modu" ve "Her şey hazır" demeli
 ```
+Perde 1b'de onay: `./scripts/create-order.sh -a 15000` → **`./scripts/form-url.sh`** formu tarayıcıda açar →
+Karar: Onayla / Reddet, Onaylayan: adın → Fiori'yi yenile. Formu açmadan önce n8n'de Executions'taki
+**waiting** execution'ı gösterebilirsin; "send-and-wait burada da aynı, kanal Telegram yerine n8n formu" de.
 
 > `--tunnel` unutursan Telegram butonları **hiç gönderilmez** (Telegram localhost
 > adreslerini reddeder). `check-demo.sh` bunu yakalar.
@@ -261,7 +264,7 @@ Vaktin kalırsa: `03 - Error Handler` workflow'unu göster (1 node, hata → Tel
 
 | Olursa | Hemen yap |
 |---|---|
-| **İnternet yok** | `.env` → `order-approval-offline` · n8n'de `04` Activate, `01` Deactivate · `./scripts/stop-demo.sh && ./scripts/start-demo.sh` (**tünelsiz**) · onayı `onayFormUrl`'den ver |
+| **İnternet yok / tünel açılmıyor (7844 kapalı)** | `.env` → `order-approval-offline` · `./scripts/stop-demo.sh && ./scripts/start-demo.sh` (**tünelsiz**, CAP dahil) · onayı `./scripts/form-url.sh` ile ver |
 | **Telegram mesajı hiç gitmiyor** | Tünel kapanmıştır. `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --tunnel --n8n` |
 | **Chat "Failed to receive response"** | Tünel kopmuş ya da sekme eski. `http://localhost:4004/chat.html`'e geç; Telegram için tüneli yeniden başlat |
 | **Chat "Error in workflow"** | Gemini kotası (günde 20). `./scripts/agent-demo.sh` ile devam et, anlatım aynı |

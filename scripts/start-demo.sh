@@ -108,8 +108,9 @@ if (( WANT_N8N )); then
   else
     info "n8n başlatılıyor…"
     # WEBHOOK_URL is what n8n puts into the Telegram approval buttons.
-    local_n8n_cmd="n8n"
-    [[ -n "$PUBLIC_URL" ]] && local_n8n_cmd="WEBHOOK_URL='$PUBLIC_URL' n8n"
+    # Tünel varsa public adres; yoksa açıkça localhost. Kabuktan miras kalan WEBHOOK_URL / N8N_WEBHOOK_URL
+    # değerleri form ve buton linklerini bozabildiği için her iki durumda da açıkça veriyoruz.
+    local_n8n_cmd="unset N8N_WEBHOOK_URL; WEBHOOK_URL='${PUBLIC_URL:-$N8N_URL/}' n8n"
     if [[ $MODE == windows ]]; then run_in_terminal "n8n :5678" "$REPO_ROOT" "$local_n8n_cmd"
     else run_in_bg "n8n" "$REPO_ROOT" "$local_n8n_cmd"; fi
     # n8n's first boot runs DB migrations, so give it a generous window.
@@ -124,8 +125,11 @@ if (( WANT_CAP )); then
     ok "CAP zaten çalışıyor  $CAP_URL"
   else
     info "CAP başlatılıyor…"
-    if [[ $MODE == windows ]]; then run_in_terminal "CAP :4004" "$CAP_DIR" "cds watch"
-    else run_in_bg "cap" "$CAP_DIR" "cds watch"; fi
+    # .env'i zorla yükle: kabukta export edilmiş eski bir N8N_WEBHOOK_URL varsa cds onu .env ile ezmez,
+    # CAP de yanlış workflow'a (örn. form modundayken 01'e) webhook atar. set -a ile dosya her zaman kazanır.
+    CAP_CMD='set -a; . ./.env; set +a; cds watch'
+    if [[ $MODE == windows ]]; then run_in_terminal "CAP :4004" "$CAP_DIR" "$CAP_CMD"
+    else run_in_bg "cap" "$CAP_DIR" "$CAP_CMD"; fi
     for i in {1..30}; do cap_up && break; sleep 1; done
     cap_up && ok "CAP hazır  $CAP_URL" || warn "CAP yanıt vermedi - log: $LOG_DIR/cap.log"
   fi
