@@ -2,7 +2,8 @@
 
 | Dosya | |
 |---|---|
-| [`../SUNUM.pptx`](../SUNUM.pptx) | 11 slayt, her birinde konuşmacı notu (Keynote'ta Görünüm → Sunucu Notları) |
+| [`SAP-n8n-Sunum.html`](SAP-n8n-Sunum.html) | **Sahnede kullanılan deste**: 8 slayt, tek dosya, tarayıcıda açılır (ok tuşları / `#1`…`#8`). Görseller ve yazı tipleri gömülü; yalnızca React'i unpkg CDN'den çektiği için **internet gerektirir** |
+| [`../SUNUM.pptx`](../SUNUM.pptx) | 11 slaytlık PowerPoint sürümü, her slaytta konuşmacı notu (Keynote'ta Görünüm → Sunucu Notları) |
 | [`SAHNE-KARTI.md`](SAHNE-KARTI.md) | Tek sayfa sahne kartı: linkler, butonlu / butonsuz / metinsiz varyantların komutları, kurtarma |
 | [`SUNUM-NOTLARI.md`](SUNUM-NOTLARI.md) | Sahnedeki dakika dakika akış: T-10 hazırlık, Perde 1 ve 2'nin konuşma metni, kurtarma hamleleri, sık gelen sorular |
 | `build-deck.js` | Desteyi üreten pptxgenjs script'i; metin ve notlar burada |

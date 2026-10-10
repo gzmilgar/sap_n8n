@@ -15,6 +15,7 @@ Tek sayfa: linkler, dört demo varyantı, kurtarma. Ayrıntı: [SUNUM-NOTLARI.md
 | n8n · Executions (waiting'i göster) | http://localhost:5678/home/executions |
 | Telegram Web (bot sohbeti açık) | https://web.telegram.org/a/ |
 | Kapanış / QR | https://github.com/gzmilgar/sap_n8n |
+| Sunum destesi (HTML, 8 slayt; internet ister) | `open ~/sap_n8n/sunum/SAP-n8n-Sunum.html` |
 
 ## Sahne öncesi (T-10)
 

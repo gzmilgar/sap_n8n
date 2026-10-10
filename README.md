@@ -110,6 +110,7 @@ sap_n8n/
 ├─ SUNUM.pptx                          ← 11 slayt, konuşmacı notlu
 ├─ sunum/
 │  ├─ README.md                        desteyi yeniden üretme
+│  ├─ SAP-n8n-Sunum.html               sahnedeki 8 slaytlık HTML deste (tek dosya)
 │  ├─ SUNUM-NOTLARI.md                 sahnedeki dakika dakika akış, kurtarma hamleleri, SSS
 │  ├─ SAHNE-KARTI.md                   tek sayfa: linkler, dört varyant, kurtarma
 │  ├─ build-deck.js · lib.js           pptxgenjs ile deste üretimi
@@ -577,8 +578,14 @@ Fiyatlar ve lisans ayrıntıları için <https://n8n.io/pricing> (deste Eylül 2
 
 ## 16. Sunum destesi
 
-`SUNUM.pptx`: 11 slayt, her birinde konuşmacı notu. Yapı: **6 slayt → canlı demo (~12 dk) → 5 slayt.**
-Deste demoyu anlatmaz, n8n'i bir SAP geliştiricisinin gözüyle anlatır.
+İki sürüm var:
+
+- **`sunum/SAP-n8n-Sunum.html`**: sahnede kullanılan 8 slaytlık tek dosyalık HTML deste. Tarayıcıda aç,
+  ok tuşlarıyla ilerle (`…html#3` gibi doğrudan slayt adresi de çalışır). Görseller ve yazı tipleri gömülü,
+  React'i unpkg CDN'den yüklediği için internet gerektirir. Akış: n8n nedir → nasıl çalışır → SAP
+  entegrasyonu → SAP × n8n ortaklığı → iki canlı senaryo → soru-cevap.
+- **`SUNUM.pptx`**: 11 slaytlık PowerPoint sürümü, her birinde konuşmacı notu. Yapı: **6 slayt → canlı
+  demo (~12 dk) → 5 slayt.** Deste demoyu anlatmaz, n8n'i bir SAP geliştiricisinin gözüyle anlatır.
 
 | # | Slayt |
 |---|---|
