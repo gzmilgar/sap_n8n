@@ -22,6 +22,7 @@ Gereksinimler: zsh, Node ≥ 20, `n8n` ve `cds` global kurulu, macOS'ta hazır g
 |---|---|---|
 | `create-order.sh` | CAP'te test siparişi açar, dönen ID'yi yazar. Tutar verilmezse CAP `qty × unitPrice` hesaplar. | `-a 500` otomatik onay · `-a 15000` Telegram/Form onayı · `-p "Dijital Manometre" -q 3` · `-c "Ege Teknik"` |
 | `watch-order.sh` | Bir siparişi `PENDING`'den çıkana kadar izler. | `./watch-order.sh <ID> 120` |
+| `mode.sh` | Onay kanalını değiştirir: `telegram` (01, düğmeler) ya da `form` (04, form + Telegram metin bildirimi); `.env`'i yazar ve CAP'i yeniden başlatır (liste 3 tohum kayda döner). Parametresiz çağrılınca mevcut modu gösterir. n8n'e dokunmaz; 01 ve 04 aynı anda aktiftir. | `./mode.sh telegram` · `./mode.sh form` · `./mode.sh` |
 | `form-url.sh` | Form modunda (04) onay bekleyen son siparişin `onayFormUrl`'ini n8n veritabanından okur ve tarayıcıda açar. Son 12 saatten eski artık execution'ları atlar; tünelli üretilmiş adresi localhost'a çevirir. | `./form-url.sh` · `./form-url.sh --print` · `./form-url.sh <sipariş-id>` |
 | `agent-demo.sh` | Perde 2'yi canlı LLM olmadan oynar: `listProducts` → `getCustomer` → tutar → `createOrder`, konuşma hızında, her adımı açıklayarak. Ürün ya da müşteri bulunamazsa agent gibi **durur**. | `-c Anadolu -p Filtre -q 40` · `-p "Olmayan Urun"` · `--fast` duraklamasız |
 

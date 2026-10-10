@@ -111,6 +111,7 @@ sap_n8n/
 ├─ sunum/
 │  ├─ README.md                        desteyi yeniden üretme
 │  ├─ SUNUM-NOTLARI.md                 sahnedeki dakika dakika akış, kurtarma hamleleri, SSS
+│  ├─ SAHNE-KARTI.md                   tek sayfa: linkler, dört varyant, kurtarma
 │  ├─ build-deck.js · lib.js           pptxgenjs ile deste üretimi
 ├─ order-demo/                         # SAP CAP servisi
 │  ├─ MIMARI.md                        uygulamanın satır satır anlatımı
@@ -445,6 +446,7 @@ Ayrıntı: [scripts/README.md](scripts/README.md).
 | `check-demo.sh [--full]` | Sahne öncesi kontrol; `--full` gerçek bir uçtan uca tur atar |
 | `create-order.sh [-a tutar] [-c müşteri] [-p ürün] [-q adet]` | Test siparişi açar |
 | `watch-order.sh <ID> [saniye]` | Siparişi `PENDING`'den çıkana kadar izler |
+| `mode.sh [telegram\|form]` | Onay kanalını değiştirir ve CAP'i yeniden başlatır; parametresiz mevcut modu gösterir |
 | `form-url.sh [--print] [sipariş-id]` | Form modunda (04) onay bekleyen son siparişin onay formunu bulur ve tarayıcıda açar |
 | `agent-demo.sh [-c] [-p] [-q] [--fast]` | Perde 2'yi LLM'siz oynar: üç tool çağrısını elle, konuşma hızında |
 | `set-chat-id.sh <id>` | Telegram chat id'yi 01 ve 03'e yazar (repo JSON'ları + n8n DB) |

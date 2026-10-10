@@ -3,6 +3,7 @@
 | Dosya | |
 |---|---|
 | [`../SUNUM.pptx`](../SUNUM.pptx) | 11 slayt, her birinde konuşmacı notu (Keynote'ta Görünüm → Sunucu Notları) |
+| [`SAHNE-KARTI.md`](SAHNE-KARTI.md) | Tek sayfa sahne kartı: linkler, butonlu / butonsuz / metinsiz varyantların komutları, kurtarma |
 | [`SUNUM-NOTLARI.md`](SUNUM-NOTLARI.md) | Sahnedeki dakika dakika akış: T-10 hazırlık, Perde 1 ve 2'nin konuşma metni, kurtarma hamleleri, sık gelen sorular |
 | `build-deck.js` | Desteyi üreten pptxgenjs script'i; metin ve notlar burada |
 | `lib.js` | Renkler, yazı tipleri, kutu/ok/rozet gibi ortak çizim yardımcıları |
