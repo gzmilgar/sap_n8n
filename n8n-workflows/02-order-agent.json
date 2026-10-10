@@ -36,7 +36,7 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3-flash-preview",
+        "modelName": "models/gemini-flash-latest",
         "options": {
           "temperature": 0
         }
@@ -57,8 +57,8 @@
       },
       "notes": "503/429 gibi gecici hatalarda 5 deneme, 5 sn arayla (Retry On Fail).",
       "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
