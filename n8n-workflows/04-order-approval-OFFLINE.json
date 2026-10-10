@@ -250,6 +250,34 @@
         480,
         440
       ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "<CHAT_ID>",
+        "text": "=*Onay Bekleyen Siparis*\n\nMusteri: {{ $json.customer }}\nUrun: {{ $json.product }}\nAdet: {{ $json.qty }}\nTutar: *{{ $json.amount }} {{ $json.currency }}*\n\nSiparis No: `{{ $json.ID }}`\n\nTutar 10.000 TRY esigini astigi icin onay gerekiyor.\nOnay formu (bu bilgisayarda ac):\n{{ $json.onayFormUrl.replace('localhost', '127.0.0.1') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "d4000000-0000-4000-8000-000000000009",
+      "name": "Telegram Bildir",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        20
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      },
+      "notes": "Bildirim: Telegram'a ozet + form linki. Dugme degil, duz metin link; public adres gerektirmez. Hata verse de form akisi surer (onError)."
     }
   ],
   "connections": {
@@ -278,6 +306,11 @@
     "Tutar > 10.000 mu?": {
       "main": [
         [
+          {
+            "node": "Telegram Bildir",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Form ile Onay Bekle",
             "type": "main",

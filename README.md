@@ -386,7 +386,7 @@ n8n'de `04`'ü **Activate**, `01`'i **Deactivate** et, sonra:
 ./scripts/stop-demo.sh && ./scripts/start-demo.sh     # --tunnel OLMADAN
 ```
 
-- İnternet, tünel, Telegram gerektirmez. En güvenli mod.
+- İnternet, tünel gerektirmez. En güvenli mod. İnternet varsa 04 yine de Telegram'a **bildirim** atar: sipariş özeti + onay formunun linki (`127.0.0.1`), düğme yok. Linke n8n'in çalıştığı bilgisayardaki Telegram Web'den tıklayınca form açılır; telefondan açılmaz.
 - n8n **mutlaka tünelsiz** başlamalı; tünelliyken form linki tünel adresini üretir, tünel kapanınca ölür.
 - Onay adresi: **`./scripts/form-url.sh`** bekleyen son formu bulup tarayıcıda açar (`--print` sadece yazar). Elle bulmak istersen çalışan execution'daki `Siparis Bilgileri` node'unun `onayFormUrl` alanı. Adresi elle kurma; n8n linke tek kullanımlık bir `?signature=` ekler.
 - Mod değiştirince **CAP'i de yeniden başlat** (`./scripts/stop-demo.sh --cap && ./scripts/start-demo.sh --cap`); `.env` yalnızca başlangıçta okunur.

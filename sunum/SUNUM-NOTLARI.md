@@ -26,7 +26,8 @@ cd ~/sap_n8n
 ./scripts/start-demo.sh          # --tunnel OLMADAN
 ./scripts/check-demo.sh --full   # "FORM modu" ve "Her şey hazır" demeli
 ```
-Perde 1b'de onay: `./scripts/create-order.sh -a 15000` → **`./scripts/form-url.sh`** formu tarayıcıda açar →
+Perde 1b'de onay: `./scripts/create-order.sh -a 15000` → Telegram Web'e "Onay Bekleyen Siparis" mesajı düşer, içindeki
+`127.0.0.1` linkine **bu Mac'ten** tıkla (ya da **`./scripts/form-url.sh`** formu açar) →
 Karar: Onayla / Reddet, Onaylayan: adın → Fiori'yi yenile. Formu açmadan önce n8n'de Executions'taki
 **waiting** execution'ı gösterebilirsin; "send-and-wait burada da aynı, kanal Telegram yerine n8n formu" de.
 

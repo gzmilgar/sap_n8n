@@ -128,7 +128,8 @@ mekanizması var. İnternet, tünel ve Telegram gerektirmez.
 ```
 CAP Webhook ─► Siparis Bilgileri ─► Tutar > 10.000 mu?
                                         │ hayır ─► CAP approve (auto-rule)
-                                        │ evet  ─► Form ile Onay Bekle ─► Onaylandi mi? ─► CAP approve (Form)
+                                        │ evet  ─► Telegram Bildir  (özet + form linki; düğme yok)
+                                        │       └► Form ile Onay Bekle ─► Onaylandi mi? ─► CAP approve (Form)
                                                                                         └► CAP reject (Form)
 ```
 
@@ -136,6 +137,7 @@ CAP Webhook ─► Siparis Bilgileri ─► Tutar > 10.000 mu?
 |---|---|
 | `CAP Webhook` | `POST /webhook/order-approval-offline`, aynı Header Auth credential'ı |
 | `Siparis Bilgileri` | Ek alan **`onayFormUrl`** = `$execution.resumeFormUrl`. Onay formunun adresi budur. |
+| `Telegram Bildir` | Form beklemeye geçmeden önce Telegram'a sipariş özeti ve form linkini **düz metin** olarak gönderir (`localhost` yerine `127.0.0.1`, Telegram IP adreslerini tıklanabilir yapar). Düğme kullanmadığı için public adres gerektirmez; link yalnızca n8n'in çalıştığı bilgisayardaki Telegram Web/Desktop'tan açılır. `onError: continue`: Telegram başarısız olsa da form akışı sürer. |
 | `Form ile Onay Bekle` | Wait node, form gönderilince devam eder. Formda onaylayan adı ve Onayla / Reddet seçimi vardır. |
 | `CAP approve (Form)` | `approvedBy` alanına formdaki isim yazılır. |
 
