@@ -72,9 +72,11 @@ CAP Webhook ─► Siparis Bilgileri ─► Tutar > 10.000 mu?
 | `CAP reject (Telegram)` | HTTP Request | `POST .../reject` `{ID, reason}`. Sebep CAP'te `note` alanına yazılır. |
 | `CAP approve (auto-rule)` | HTTP Request | Eşiğin altı: `{ID, approvedBy: "auto-rule"}`; yaklaşık 1 saniyede döner. |
 
-**Telegram butonları `localhost` ile çalışmaz.** Telegram, buton URL'i olarak loopback adresi
-kabul etmez. n8n'i public bir adresle başlatman gerekir: `./scripts/start-demo.sh --tunnel`
-(cloudflared). Ayrıntı: [kök README § 8](../README.md#8-onay-modları-telegram-ve-form).
+**Telegram butonları `localhost` ile çalışmaz, `127.0.0.1` ile çalışır.** Telegram, `localhost` gibi
+noktasız adresleri reddeder; IP adreslerini kabul eder. `start-demo.sh` tünel yoksa n8n'i
+`WEBHOOK_URL=http://127.0.0.1:5678/` ile başlatır: düğmeler n8n'in çalıştığı bilgisayardaki Telegram
+Web/Desktop'tan tıklanınca çalışır. Telefondan onay için public adres gerekir: `--tunnel`.
+Ayrıntı: [kök README § 8](../README.md#8-onay-modları-telegram-ve-form).
 
 Onay butonuna demo yapılan bilgisayardaki tarayıcıdan basılır; tıklayınca "Action recorded"
 sayfası açılır. Sohbetteki mesaj kendini güncellemez; bu normaldir.

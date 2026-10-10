@@ -20,7 +20,14 @@ cd ~/sap_n8n
 > hemen önce `./scripts/check-demo.sh` çalıştır; "tünel yanıt vermiyor" derse n8n'i `--tunnel` ile
 > yeniden başlat (1 dakika).
 
-**Form modunda** (internet yok, 7844 kapalı ya da riskli):
+**Telegram, tünelsiz** (7844 kapalı ama internet var; düğmeye Mac'ten basılır):
+```zsh
+./scripts/start-demo.sh          # --tunnel OLMADAN; n8n taban adresi 127.0.0.1 olur
+./scripts/check-demo.sh --full   # "tünel yok, n8n taban adresi http://127.0.0.1:5678/" uyarısı normaldir
+```
+Telegram Web'de mesaj ve Onayla / Reddet düğmeleri aynen gelir; düğmeye **bu Mac'ten** bas.
+
+**Form modunda** (internet yok ya da Telegram riskli):
 ```zsh
 # order-demo/.env -> N8N_WEBHOOK_URL=http://localhost:5678/webhook/order-approval-offline
 ./scripts/start-demo.sh          # --tunnel OLMADAN

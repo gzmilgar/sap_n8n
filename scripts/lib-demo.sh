@@ -3,7 +3,7 @@
 
 CAP_URL="${CAP_URL:-http://localhost:4004}"
 ODATA="$CAP_URL/odata/v4/order"
-N8N_URL="${N8N_URL:-http://localhost:5678}"
+N8N_URL="${N8N_URL:-http://127.0.0.1:5678}"   # 127.0.0.1, localhost degil: Telegram IP adresli dugmeleri kabul eder, localhost'u reddeder
 
 REPO_ROOT="${0:A:h:h}"          # scripts/ -> repo root
 CAP_DIR="$REPO_ROOT/order-demo"

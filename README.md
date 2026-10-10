@@ -373,6 +373,21 @@ brew install cloudflared            # bir kerelik, hesap gerektirmez
 - Tünel URL'i her başlatmada değişir; script halleder.
 - Butona **demo yapılan bilgisayardaki tarayıcıdan** bas (Telegram Web sekmesi açık olsun). Telefondan çalışmaz.
 
+### Mod A2 · Telegram, tünelsiz (aynı bilgisayardan onay)
+
+Telegram `localhost` adresli düğmeleri reddeder ama **IP adresli** düğmeleri kabul eder. `start-demo.sh`
+tünel yoksa n8n'i `WEBHOOK_URL=http://127.0.0.1:5678/` ile başlatır; 01'in Onayla / Reddet düğmeleri
+`127.0.0.1`'i gösterir ve **n8n'in çalıştığı bilgisayardaki** Telegram Web ya da Telegram Desktop'tan
+tıklanınca çalışır. Tünel, cloudflared, 7844 portu gerekmez; yalnızca Telegram API'ye (443) erişim yeter.
+
+```zsh
+./scripts/start-demo.sh            # --tunnel OLMADAN; .env'de order-approval (01) kalsın
+./scripts/check-demo.sh            # "tünel yok, n8n taban adresi http://127.0.0.1:5678/" + uyarı
+```
+
+- Sahnede Telegram mesajı ve düğmeler aynen görünür; tek fark düğmeye telefondan değil Mac'ten basılması.
+- Telefondan onay şartsa Mod A (tünel) gerekir.
+
 ### Mod B · Form (tamamen lokal)
 
 ```zsh
@@ -493,7 +508,7 @@ Veritabanı **in-memory SQLite**: `cds watch` her başladığında CSV'ler yenid
 | Telegram mesajı hiç gitmiyor | Tünel kapanmış | `./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --tunnel --n8n` |
 | Chat: **Failed to receive response**, n8n'de execution yok | n8n'in chat sayfası ve editör, mesajı tünel adresine gönderir; tünel kopmuş ya da sekme eski | `http://localhost:4004/chat.html` kullan. Tünel için `check-demo.sh`; kopmuşsa n8n'i `--tunnel` ile yeniden başlat, editör sekmesini yenile |
 | Chat: **Error in workflow**, 1-2 sn içinde | Gemini 429: günlük 20 istek kotası dolmuş (ya da dakikalık sınır) | n8n → Executions'ta hatayı oku. Günlükse ertesi gün ~10:00'a kadar bekle, ikinci bir ücretsiz anahtar kullan ya da `agent-demo.sh` ile oyna |
-| Tünel hiç açılmıyor, `check-demo` 530 diyor, logda "Allow outbound TCP on port 7844" | Ağ 7844 portunu engelliyor (kurumsal / etkinlik WiFi) | Bu ağda Cloudflare tüneli çalışmaz. Mod B'ye geç: `.env` → `order-approval-offline`, n8n'i **tünelsiz**, CAP'i yeniden başlat, onayı `./scripts/form-url.sh` ile ver |
+| Tünel hiç açılmıyor, `check-demo` 530 diyor, logda "Allow outbound TCP on port 7844" | Ağ 7844 portunu engelliyor (kurumsal / etkinlik WiFi) | Bu ağda Cloudflare tüneli çalışmaz. **Mod A2:** n8n'i tünelsiz başlat, düğmeler `127.0.0.1`'e gider, Mac'teki Telegram Web'den tıkla. İnternet de yoksa Mod B (form) |
 | Mod değiştirdim ama CAP hâlâ eski workflow'a gidiyor; form linki `/webhook/order-approval/` içeriyor | Kabukta export edilmiş `N8N_WEBHOOK_URL` `.env`'i eziyor ve n8n'in taban adresini bozuyor | `unset N8N_WEBHOOK_URL` ve `start-demo.sh` ile yeniden başlat (script bunu kendisi de yapar). Ayrıntı: § 9 |
 | Tünel 20-30 dakika sonra kendiliğinden kopuyor | Cloudflare quick tunnel kalıcı değildir | Perde 2'den hemen önce `./scripts/check-demo.sh` çalıştır; kopmuşsa n8n'i `--tunnel` ile yeniden başlat. Yerel chat sayfası tünelden etkilenmez |
 | Form: **Invalid Form Link** | URL elle kurulmuş | `onayFormUrl` alanındaki hazır adresi kullan |

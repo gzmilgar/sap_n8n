@@ -83,10 +83,17 @@ else
       bad "tünel URL'i var ama yanıt vermiyor (HTTP $CODE)"; note
     fi
   else
-    bad "tünel YOK - Telegram onay butonları çalışmaz"; note
-    info "Telegram, localhost'a giden butonları reddeder."
-    info "çözüm:  ./scripts/stop-demo.sh && ./scripts/start-demo.sh --tunnel"
-    info "ya da form moduna geç (README.md, 'Onay modları' bölümü)"
+    N8N_PID=$(pgrep -f 'bin/n8n$' | head -1)
+    N8N_BASE=$(ps eww -p "${N8N_PID:-0}" -o command= 2>/dev/null | tr ' ' '\n' | sed -n 's/^WEBHOOK_URL=//p' | head -1)
+    if [[ "$N8N_BASE" == http://127.0.0.1:* ]]; then
+      ok "tünel yok, n8n taban adresi $N8N_BASE"
+      warn "Telegram düğmeleri 127.0.0.1'e gider: SADECE bu bilgisayardaki Telegram Web/Desktop'tan çalışır (telefondan değil)"
+      info "başka cihazdan onay gerekiyorsa: ./scripts/stop-demo.sh && ./scripts/start-demo.sh --tunnel"
+    else
+      bad "tünel YOK ve n8n taban adresi '${N8N_BASE:-boş}' - Telegram, localhost adresli düğmeleri reddeder"; note
+      info "çözüm:  ./scripts/stop-demo.sh --n8n && ./scripts/start-demo.sh --n8n   (taban adres 127.0.0.1 olur)"
+      info "ya da tünelle: ./scripts/start-demo.sh --tunnel  ·  ya da form modu (README, 'Onay modları')"
+    fi
   fi
   info "onay butonuna bu Mac'teki tarayıcıdan bas (Telegram Web açık olsun)"
 fi
